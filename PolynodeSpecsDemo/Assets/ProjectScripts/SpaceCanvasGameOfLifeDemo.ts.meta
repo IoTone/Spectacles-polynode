@@ -1,0 +1,44 @@
+- !<AssetImportMetadata/22058f5f-03ed-4d30-a393-3b431315f0a0>
+  ImportedAssetIds:
+    TypeScriptAsset: !<reference> a37dcedc-6dea-47de-bff3-13032ed6ffc6
+  ImporterName: TypeScriptAssetImporter
+  PrimaryAsset: !<reference> a37dcedc-6dea-47de-bff3-13032ed6ffc6
+  PackageType: NotAPackage
+  LegacyPackagePolicy: ~
+  ExtraData:
+    {}
+  AssetDataMap:
+    TypeScriptAsset: !<own> 10e0012f-0e1a-4938-8dfd-731177a4009f
+  DependentFiles:
+    []
+  ImporterSettings: !<AssetImporterSettings>
+    {}
+  CompressionSettings: !<own> 00000000-0000-0000-0000-000000000000
+- !<TypeScriptAssetData/10e0012f-0e1a-4938-8dfd-731177a4009f>
+  SvgIcon: ""
+  SetupScript:
+    code: ""
+  Description: ""
+  VersionMajor: 0
+  VersionMinor: 0
+  VersionPatch: 0
+  ComponentUid: 07efc457-154f-41ea-9b1b-4610df4ed658
+  ExportUid: 00000000-0000-0000-0000-000000000000
+  PackagePolicy: CanBeUnpacked
+  ScriptInputsHidden:
+    webView: false
+  ScriptTypesHidden:
+    {}
+  ReadMe: !<reference> 00000000-0000-0000-0000-000000000000
+  DeclarationFile: !<reference> 00000000-0000-0000-0000-000000000000
+  Tags:
+    []
+  Attachments:
+    []
+  DefaultScriptInputs:
+    - webView: !<MappingBased.AssignableType> 00000000-0000-0000-0000-000000000000
+  ScriptTypes:
+    -
+      {}
+  InputLines:
+    - '// @input AssignableType webView {"hint":"WebView component from WebView.lspkg"}'

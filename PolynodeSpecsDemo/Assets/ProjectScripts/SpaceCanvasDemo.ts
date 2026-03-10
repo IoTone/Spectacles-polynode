@@ -1,3 +1,5 @@
+// Copyright (c) 2026 IoTone, Inc. MIT/X License — see LICENSE.txt
+//
 // SpaceCanvasDemo.ts — Full demo showcasing all SpaceCanvas features.
 //
 // Setup in Lens Studio:
@@ -318,9 +320,15 @@ export default class SpaceCanvasDemo extends BaseScriptComponent {
   var frame = 0;
   var numDots = 12;
   var orbitA = 130, orbitB = 50;
+  var lastTime = performance.now();
+  var fps = 0;
 
   function drawFrame() {
     frame++;
+    var now = performance.now();
+    var delta = now - lastTime;
+    lastTime = now;
+    if (delta > 0) fps = fps * 0.9 + (1000 / delta) * 0.1;
     var t = frame * 0.025;
 
     // Clip to animation region so static demos are preserved
@@ -396,7 +404,7 @@ export default class SpaceCanvasDemo extends BaseScriptComponent {
     ctx.font = '10px monospace';
     ctx.fillStyle = '#335566';
     ctx.textAlign = 'left';
-    ctx.fillText('frame ' + frame, ax + 6, ay + ah - 6);
+    ctx.fillText('frame ' + frame + '  ' + Math.round(fps) + ' fps', ax + 6, ay + ah - 6);
 
     ctx.restore();
     requestAnimationFrame(drawFrame);

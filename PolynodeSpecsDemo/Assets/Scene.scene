@@ -181,6 +181,83 @@
   DecayType: None
   DecayLimit: false
   DecayRange: 40.000000
+- !<ScriptComponent/00482466-0a19-4bca-b0d0-b0568cae061c>
+  PrefabRemaps:
+    []
+  Name: SpaceCanvasGameOfLifeDemo
+  Enabled: true
+  ScriptAsset: !<reference> a37dcedc-6dea-47de-bff3-13032ed6ffc6
+  ScriptInputsDefault:
+    {}
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      webView: !<MappingBased.AssignableType> 891095c0-3f27-49a4-835e-a424f59ed70c
+  ScriptTypes:
+    "":
+      {}
+- !<ScriptComponent/01204365-78b8-4e38-b240-6e5da9830cb6>
+  PrefabRemaps:
+    []
+  Name: ContainerFrame
+  Enabled: true
+  ScriptAsset: !<reference> 35d1bbb6-6a1d-4e80-abec-791ea8af19ec
+  ScriptInputsDefault:
+    constantPadding: true
+    autoScaleContent: true
+    relativeZ: true
+    allowTranslation: true
+    cutOut: true
+    useBillboarding: true
+    xOnTranslate: true
+    xAlways: true
+    yOnTranslate: true
+    yAlways: true
+    useSnapping: true
+    itemSnapping: true
+    worldSnapping: true
+    showFollowButton: true
+    useFOVFollow: true
+    isFollowing: true
+    showCloseButton: true
+    _enableInteractionPlane: true
+    _targetingVisual: true
+    isSynced: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      autoShowHide: false
+      innerSize: !<Vec2> {x: 15.000000, y: 15.000000}
+      border: !<float> 50.000000
+      constantPadding: !<Vec2> {x: 0.000000, y: 0.000000}
+      allowScaling: false
+      autoScaleContent: true
+      relativeZ: false
+      isContentInteractable: true
+      allowTranslation: true
+      cutOut: false
+      minimumSize: !<Vec2> {x: 8.000000, y: 8.000000}
+      maximumSize: !<Vec2> {x: 800.000000, y: 800.000000}
+      useBillboarding: false
+      xOnTranslate: false
+      xAlways: false
+      yOnTranslate: false
+      yAlways: false
+      useSnapping: false
+      itemSnapping: false
+      worldSnapping: false
+      showFollowButton: false
+      useFOVFollow: false
+      isFollowing: false
+      showCloseButton: true
+      _enableInteractionPlane: false
+      _targetingVisual: !<float> 1.000000
+      isSynced: false
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/01b89a34-cc13-4273-a32d-78142463c8b4>
   PrefabRemaps:
     []
@@ -540,6 +617,66 @@
     - !<own> d0055546-fb78-4f32-9d94-7424de771843
   Components:
     []
+- !<ScriptComponent/14aeb8b7-3f81-4e90-8017-833c778b41f4>
+  PrefabRemaps:
+    []
+  Name: ContainerFrame
+  Enabled: true
+  ScriptAsset: !<reference> 35d1bbb6-6a1d-4e80-abec-791ea8af19ec
+  ScriptInputsDefault:
+    autoScaleContent: true
+    relativeZ: true
+    allowTranslation: true
+    cutOut: true
+    useBillboarding: true
+    xOnTranslate: true
+    xAlways: true
+    yOnTranslate: true
+    yAlways: true
+    useSnapping: true
+    itemSnapping: true
+    worldSnapping: true
+    showFollowButton: true
+    useFOVFollow: true
+    isFollowing: true
+    showCloseButton: true
+    _enableInteractionPlane: true
+    _targetingVisual: true
+    isSynced: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      autoShowHide: false
+      innerSize: !<Vec2> {x: 15.000000, y: 15.000000}
+      border: !<float> 50.000000
+      constantPadding: !<Vec2> {x: 2.000000, y: 2.000000}
+      allowScaling: false
+      autoScaleContent: true
+      relativeZ: false
+      isContentInteractable: true
+      allowTranslation: true
+      cutOut: false
+      minimumSize: !<Vec2> {x: 8.000000, y: 8.000000}
+      maximumSize: !<Vec2> {x: 800.000000, y: 800.000000}
+      useBillboarding: false
+      xOnTranslate: false
+      xAlways: false
+      yOnTranslate: false
+      yAlways: false
+      useSnapping: false
+      itemSnapping: false
+      worldSnapping: false
+      showFollowButton: false
+      useFOVFollow: false
+      isFollowing: false
+      showCloseButton: true
+      _enableInteractionPlane: false
+      _targetingVisual: !<float> 1.000000
+      isSynced: false
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/14e62459-4ac7-442e-a79a-4cd647269a17>
   PrefabRemaps:
     []
@@ -555,6 +692,21 @@
     - !<own> ec060145-521e-4b6e-9e66-a0078b3c47b4
   Components:
     []
+- !<SceneObject/1680a7f3-caff-4f91-9c9a-30704d69fe1e>
+  PrefabRemaps:
+    []
+  Name: WebView
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 102.400002, y: 76.800003, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 891095c0-3f27-49a4-835e-a424f59ed70c
 - !<SceneObject/182c4c40-9627-4cfd-ad07-d6c5ba94dedd>
   PrefabRemaps:
     []
@@ -1461,11 +1613,26 @@
     HasSegmentScaleCompensation: false
   Children:
     - !<own> 74c8e638-fc2a-4665-8871-c8d939394753
-    - !<own> 82a32e79-04ee-4ed4-bb6a-35e55038342b
     - !<own> 36ec223d-427c-4602-9f92-e880e3d71b8a
-    - !<own> 60c5accf-e3f9-42d1-995d-cb122a103b2b
+    - !<own> 47396be1-881f-44ea-82d1-160299162b59
+    - !<own> 951d452a-03cb-4557-8bc5-26757f062639
   Components:
     - !<own> 362ec872-2cc2-45ae-8db0-449521938eec
+- !<SceneObject/47396be1-881f-44ea-82d1-160299162b59>
+  PrefabRemaps:
+    []
+  Name: SpaceCanvasDemoContainer
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: -60.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 30.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    - !<own> 82a32e79-04ee-4ed4-bb6a-35e55038342b
+  Components:
+    - !<own> 14aeb8b7-3f81-4e90-8017-833c778b41f4
 - !<DeviceTracking/4a35926c-e135-485a-9f2b-38baf4f7642e>
   PrefabRemaps:
     []
@@ -2078,7 +2245,7 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Position: {x: 0.000000, y: 0.000000, z: 20.000000}
     Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
     Scale: {x: 102.400002, y: 76.800003, z: 1.000000}
     HasSegmentScaleCompensation: false
@@ -2460,7 +2627,7 @@
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
   Children:
-    []
+    - !<own> 60c5accf-e3f9-42d1-995d-cb122a103b2b
   Components:
     - !<own> 98f98ace-f44b-4946-8eae-78b8e7ce87c1
 - !<SceneObject/85b96f5d-eaaf-4fbb-8936-ac2aab30a75d>
@@ -2523,6 +2690,26 @@
     - !<own> dbe7b68c-8eff-4bcf-bfbb-db843e830d74
   Components:
     []
+- !<ScriptComponent/891095c0-3f27-49a4-835e-a424f59ed70c>
+  PrefabRemaps:
+    []
+  Name: WebView
+  Enabled: true
+  ScriptAsset: !<reference> c3f0c1b7-3bcd-436a-9727-a725cf205970
+  ScriptInputsDefault:
+    userAgent: true
+    poke: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      url: "https://github.com/IoTone/Spectacles-polynode"
+      resolution: !<Vec2> {x: 1024.000000, y: 768.000000}
+      userAgent: ""
+      poke: true
+  ScriptTypes:
+    "":
+      {}
 - !<ScriptComponent/8eb39adc-581b-40df-8d49-7e50778c1136>
   PrefabRemaps:
     []
@@ -2659,6 +2846,21 @@
     LineSpacing: 0.580000
     CapitalizationOverride: None
   EnableBatching: false
+- !<SceneObject/951d452a-03cb-4557-8bc5-26757f062639>
+  PrefabRemaps:
+    []
+  Name: SpaceCanvasGameOfLifeContainer
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 60.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: -30.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    - !<own> cb474799-8699-46f9-8827-fbb9dad8b16c
+  Components:
+    - !<own> 01204365-78b8-4e38-b240-6e5da9830cb6
 - !<ScriptComponent/95d34669-d43d-4a16-9840-b9cfb68f07eb>
   PrefabRemaps:
     []
@@ -3445,6 +3647,21 @@
   Components:
     - !<own> fc3b10ef-1f12-4238-9313-aa2a067a601e
     - !<own> a75f445f-23b5-44e9-addf-87eda3e2859e
+- !<SceneObject/cb474799-8699-46f9-8827-fbb9dad8b16c>
+  PrefabRemaps:
+    []
+  Name: SpaceCanvasGameOfLifeDemo
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    - !<own> 1680a7f3-caff-4f91-9c9a-30704d69fe1e
+  Components:
+    - !<own> 00482466-0a19-4bca-b0d0-b0568cae061c
 - !<Skin/cc674871-1341-4e80-81fd-23fbe7381293>
   PrefabRemaps:
     []

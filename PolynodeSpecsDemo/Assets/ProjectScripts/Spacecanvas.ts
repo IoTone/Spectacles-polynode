@@ -1,3 +1,5 @@
+// Copyright (c) 2026 IoTone, Inc. MIT/X License — see LICENSE.txt
+//
 // SpaceCanvas.ts — Spatial HTML5 Canvas 2D polyfill for Lens Studio / Snap Spectacles
 // Renders CanvasRenderingContext2D commands via WebView texture onto 3D geometry.
 //
