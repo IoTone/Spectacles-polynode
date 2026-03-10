@@ -8,6 +8,10 @@ These are the currently supported libraries:
 - (future) Spacedom
 - (future) SVG (this may already work, but need to test)
 
+![Image](https://github.com/user-attachments/assets/d5256b9a-dce3-4d49-9752-9877cfe56be6)
+
+<img width="1067" height="558" alt="Image" src="https://github.com/user-attachments/assets/0135134e-760a-4f41-a18a-6da7baec2e82" />
+
 ## Build
 
 At the moment the repo doesn't have a prefab created for the library, but you can just add the library to an existing project.  For a good example, see SpaceCanvasDemo.ts or SpaceCanvasGameOfLife.ts.  
