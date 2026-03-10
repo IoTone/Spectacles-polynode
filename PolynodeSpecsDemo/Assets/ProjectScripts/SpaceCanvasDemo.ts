@@ -91,21 +91,8 @@ export default class SpaceCanvasDemo extends BaseScriptComponent {
     ctx.textAlign = 'center';
     ctx.fillText('Star Path', 460, 235);
 
-    // ── 4. Title text with shadow ──
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,200,255,0.8)';
-    ctx.shadowBlur = 30;
-    ctx.font = 'bold 52px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText('SpaceCanvas', W / 2, H / 2 - 60);
-    ctx.restore();
-
-    ctx.font = '18px sans-serif';
-    ctx.fillStyle = '#88aacc';
-    ctx.textAlign = 'center';
-    ctx.fillText('HTML5 Canvas 2D for Spectacles', W / 2, H / 2 - 20);
+    // ── 4. Title text — drawn by animation loop (section 16) ──
+    // The animated center region handles the title with a pulsing glow effect.
 
     // ── 5. Bezier curves ──
     ctx.save();
@@ -307,15 +294,122 @@ export default class SpaceCanvasDemo extends BaseScriptComponent {
       'linearGradient + radialGradient + addColorStop',
       'setLineDash + lineDashOffset + lineCap + lineJoin',
       'globalAlpha + globalCompositeOperation + shadow*',
-      'font + textAlign + textBaseline + miterLimit',
+      'font + textAlign + textBaseline + miterLimit + animation',
     ];
     for (let i = 0; i < features.length; i++) {
       ctx.fillText(features[i], W - 16, H - 12 - (features.length - 1 - i) * 14);
     }
 
+    // ── 16. Animation (requestAnimationFrame via executeRaw) ──
+    // Injects a self-contained animation loop into the WebView <script>.
+    // Runs at native browser framerate with zero additional flush() calls.
+    // The animation redraws a clipped center region each frame.
+    const animX = W / 2 - 160;
+    const animY = H / 2 - 100;
+    const animW = 320;
+    const animH = 160;
+    const animCx = W / 2;
+    const animCy = H / 2 - 20;
+
+    ctx.executeRaw(`
+(function() {
+  var cx = ${animCx}, cy = ${animCy};
+  var ax = ${animX}, ay = ${animY}, aw = ${animW}, ah = ${animH};
+  var frame = 0;
+  var numDots = 12;
+  var orbitA = 130, orbitB = 50;
+
+  function drawFrame() {
+    frame++;
+    var t = frame * 0.025;
+
+    // Clip to animation region so static demos are preserved
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(ax, ay, aw, ah);
+    ctx.clip();
+
+    // Redraw background for this region
+    var bg = ctx.createLinearGradient(ax, ay, ax + aw, ay + ah);
+    bg.addColorStop(0, '#0a0e27');
+    bg.addColorStop(0.5, '#1a1a4e');
+    bg.addColorStop(1, '#0a0e27');
+    ctx.fillStyle = bg;
+    ctx.fillRect(ax, ay, aw, ah);
+
+    // Pulsing ring
+    var pulseR = 55 + Math.sin(t * 1.5) * 15;
+    ctx.strokeStyle = 'rgba(0,200,255,' + (0.2 + Math.sin(t) * 0.15).toFixed(2) + ')';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(cx, cy, pulseR, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Inner pulsing ring
+    var pulseR2 = 35 + Math.cos(t * 2) * 10;
+    ctx.strokeStyle = 'rgba(255,100,200,' + (0.15 + Math.cos(t * 1.3) * 0.1).toFixed(2) + ')';
+    ctx.beginPath();
+    ctx.arc(cx, cy, pulseR2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Orbiting dots with trails
+    for (var i = 0; i < numDots; i++) {
+      var angle = t + (i * Math.PI * 2 / numDots);
+      var x = cx + Math.cos(angle) * orbitA;
+      var y = cy + Math.sin(angle) * orbitB;
+      var size = 3 + Math.sin(t * 2 + i) * 1.5;
+      var hue = (i * 360 / numDots + frame * 2) % 360;
+
+      // Trail (fading previous position)
+      var trailAngle = angle - 0.15;
+      var tx = cx + Math.cos(trailAngle) * orbitA;
+      var ty = cy + Math.sin(trailAngle) * orbitB;
+      ctx.fillStyle = 'hsla(' + hue + ',100%,70%,0.3)';
+      ctx.beginPath();
+      ctx.arc(tx, ty, size * 0.7, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Main dot
+      ctx.fillStyle = 'hsl(' + hue + ',100%,70%)';
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Title text (redrawn each frame with animated glow)
+    ctx.shadowColor = 'rgba(0,200,255,' + (0.5 + Math.sin(t * 1.5) * 0.3).toFixed(2) + ')';
+    ctx.shadowBlur = 20 + Math.sin(t * 2) * 10;
+    ctx.font = 'bold 42px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('SpaceCanvas', cx, cy - 10);
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = 'transparent';
+
+    // Subtitle
+    ctx.font = '14px sans-serif';
+    ctx.fillStyle = '#88aacc';
+    ctx.fillText('HTML5 Canvas 2D for Spectacles', cx, cy + 20);
+
+    // Frame counter
+    ctx.font = '10px monospace';
+    ctx.fillStyle = '#335566';
+    ctx.textAlign = 'left';
+    ctx.fillText('frame ' + frame, ax + 6, ay + ah - 6);
+
+    ctx.restore();
+    requestAnimationFrame(drawFrame);
+  }
+
+  // Start animation after a short delay so static content renders first
+  setTimeout(function() { requestAnimationFrame(drawFrame); }, 100);
+})();
+`);
+
     // ── Flush ──
     print('[SpaceCanvasDemo] Flushing full demo...');
     ctx.flush();
-    print('[SpaceCanvasDemo] Done — 15 feature demos rendered.');
+    print('[SpaceCanvasDemo] Done — 16 feature demos rendered (incl. animation).');
   }
 }
