@@ -439,6 +439,24 @@
     - !<own> f03c53e5-f41b-4ccb-b005-c8b91c787ab1
   Components:
     []
+- !<ScriptComponent/09432ca0-dcfb-450d-9861-1d4d8c9b8b1d>
+  PrefabRemaps:
+    []
+  Name: SpaceCanvasNokiaSnakesDemo
+  Enabled: true
+  ScriptAsset: !<reference> 924bbe6b-e302-4fbf-acb4-aeabd80d59f7
+  ScriptInputsDefault:
+    {}
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      webView: !<MappingBased.AssignableType> a8fae57c-b409-4645-9d3c-3b5bf3b432d0
+      eatSound: !<reference.AudioComponent> de6f8e46-0169-4082-ac65-96bb36ee1c56
+      gameOverSound: !<reference.AudioComponent> 8868947b-309d-48da-8473-ea9731460972
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/09cca105-3fcd-4f2c-b0c2-8d6b9b15e9d7>
   PrefabRemaps:
     []
@@ -1155,6 +1173,21 @@
     - !<own> 023c1448-036e-45cb-8d78-aac519182ef5
   Components:
     - !<own> cc674871-1341-4e80-81fd-23fbe7381293
+- !<SceneObject/32a7be3b-3b9a-46e2-98ff-e371a877570a>
+  PrefabRemaps:
+    []
+  Name: munch
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> de6f8e46-0169-4082-ac65-96bb36ee1c56
 - !<SceneObject/341bd60f-19ea-4dae-ac97-bf3687a4bd92>
   PrefabRemaps:
     []
@@ -1223,7 +1256,7 @@
 - !<SceneObject/36ec223d-427c-4602-9f92-e880e3d71b8a>
   PrefabRemaps:
     []
-  Name: Text3D
+  Name: Polynode Version
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
@@ -1518,6 +1551,21 @@
   Components:
     - !<own> 6942918c-b3c3-43af-b96e-60bf10cd9340
     - !<own> 9458047a-2911-4111-a13b-82f826904b07
+- !<SceneObject/3f5b0742-276f-4339-a3af-ad09c64088e2>
+  PrefabRemaps:
+    []
+  Name: SpaceCanvasNokiSnakesDemoContainer
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    - !<own> b9112d97-f417-4fc2-9c20-a29ae1d397da
+  Components:
+    - !<own> c16a046d-b319-46d6-a825-c96d8d9e6f26
 - !<SceneObject/3fa53b47-e07b-43e1-ba5b-d0ff65c192a3>
   PrefabRemaps:
     []
@@ -1617,13 +1665,14 @@
     - !<own> 47396be1-881f-44ea-82d1-160299162b59
     - !<own> 951d452a-03cb-4557-8bc5-26757f062639
     - !<own> 6e8a78ca-b6cc-480d-8c8c-45585c9bdcd3
+    - !<own> 3f5b0742-276f-4339-a3af-ad09c64088e2
   Components:
     - !<own> 362ec872-2cc2-45ae-8db0-449521938eec
 - !<SceneObject/47396be1-881f-44ea-82d1-160299162b59>
   PrefabRemaps:
     []
   Name: SpaceCanvasDemoContainer
-  Enabled: true
+  Enabled: false
   Layers: 1
   LocalTransform: !<TransformEntity>
     Position: {x: -60.000000, y: 0.000000, z: 0.000000}
@@ -2290,6 +2339,21 @@
   ScriptTypes:
     "":
       {}
+- !<SceneObject/645845d4-00d4-46d4-accd-bc9f1be09ada>
+  PrefabRemaps:
+    []
+  Name: Novel
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 8868947b-309d-48da-8473-ea9731460972
 - !<SceneObject/67709fd1-fb08-4ce4-8164-2a2862d4e375>
   PrefabRemaps:
     []
@@ -2742,6 +2806,23 @@
     - !<own> dbe7b68c-8eff-4bcf-bfbb-db843e830d74
   Components:
     []
+- !<AudioComponent/8868947b-309d-48da-8473-ea9731460972>
+  PrefabRemaps:
+    []
+  Name: Audio
+  Enabled: true
+  AudioTrack: !<reference> c924d11c-39ae-402c-8400-37bc46656701
+  EnableAutoplayLoop: false
+  Volume: 1.000000
+  EnableMixToSnap: false
+  RecordVolume: 1.000000
+  EnableSpatialAudio: false
+  EnableDistanceEffect: false
+  CurveType: Logarithm
+  MinDistance: 0.000000
+  MaxDistance: 100.000000
+  EnableDirectivityEffect: false
+  EnablePositionEffect: false
 - !<ScriptComponent/891095c0-3f27-49a4-835e-a424f59ed70c>
   PrefabRemaps:
     []
@@ -3163,7 +3244,7 @@
   ShadowDensity: 1.000000
   Materials:
     - !<reference> 175be50f-f48c-409b-9d56-b94163a7e8c6
-  Text: Polynode
+  Text: Polynode v0.3
   Editable: false
   ShowEditingPreview: true
   TouchHandler: !<reference> 00000000-0000-0000-0000-000000000000
@@ -3359,6 +3440,26 @@
     []
   Components:
     - !<own> b6043a21-69cc-41b7-83db-259d895bb586
+- !<ScriptComponent/a8fae57c-b409-4645-9d3c-3b5bf3b432d0>
+  PrefabRemaps:
+    []
+  Name: WebView
+  Enabled: true
+  ScriptAsset: !<reference> c3f0c1b7-3bcd-436a-9727-a725cf205970
+  ScriptInputsDefault:
+    userAgent: true
+    poke: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      url: "https://github.com/IoTone"
+      resolution: !<Vec2> {x: 1024.000000, y: 768.000000}
+      userAgent: ""
+      poke: true
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/aa8876aa-825c-4aea-b46a-77af71589ab9>
   PrefabRemaps:
     []
@@ -3504,6 +3605,23 @@
     - !<own> 1303c855-83e1-491f-9d67-b0690c1e425a
   Components:
     []
+- !<SceneObject/b9112d97-f417-4fc2-9c20-a29ae1d397da>
+  PrefabRemaps:
+    []
+  Name: SpaceCanvasNokiaSnakesDemo
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    - !<own> faa9a7c0-df84-4887-8f9b-c4ca18094b17
+    - !<own> 645845d4-00d4-46d4-accd-bc9f1be09ada
+    - !<own> 32a7be3b-3b9a-46e2-98ff-e371a877570a
+  Components:
+    - !<own> 09432ca0-dcfb-450d-9861-1d4d8c9b8b1d
 - !<SceneObject/badc1b7b-7cb7-47ab-aad2-f993455a7cd8>
   PrefabRemaps:
     []
@@ -3596,6 +3714,67 @@
     []
   Components:
     - !<own> 5de82c56-c5f1-4506-ae30-7c9d5f42ed25
+- !<ScriptComponent/c16a046d-b319-46d6-a825-c96d8d9e6f26>
+  PrefabRemaps:
+    []
+  Name: ContainerFrame
+  Enabled: true
+  ScriptAsset: !<reference> 35d1bbb6-6a1d-4e80-abec-791ea8af19ec
+  ScriptInputsDefault:
+    autoScaleContent: true
+    relativeZ: true
+    isContentInteractable: true
+    allowTranslation: true
+    cutOut: true
+    useBillboarding: true
+    xOnTranslate: true
+    xAlways: true
+    yOnTranslate: true
+    yAlways: true
+    useSnapping: true
+    itemSnapping: true
+    worldSnapping: true
+    showFollowButton: true
+    useFOVFollow: true
+    isFollowing: true
+    showCloseButton: true
+    _enableInteractionPlane: true
+    _targetingVisual: true
+    isSynced: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      autoShowHide: false
+      innerSize: !<Vec2> {x: 15.000000, y: 15.000000}
+      border: !<float> 50.000000
+      constantPadding: !<Vec2> {x: 2.000000, y: 2.000000}
+      allowScaling: false
+      autoScaleContent: true
+      relativeZ: false
+      isContentInteractable: false
+      allowTranslation: true
+      cutOut: false
+      minimumSize: !<Vec2> {x: 8.000000, y: 8.000000}
+      maximumSize: !<Vec2> {x: 800.000000, y: 800.000000}
+      useBillboarding: false
+      xOnTranslate: false
+      xAlways: false
+      yOnTranslate: false
+      yAlways: false
+      useSnapping: false
+      itemSnapping: false
+      worldSnapping: false
+      showFollowButton: false
+      useFOVFollow: false
+      isFollowing: false
+      showCloseButton: true
+      _enableInteractionPlane: false
+      _targetingVisual: !<float> 1.000000
+      isSynced: false
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/c1c65b09-bf26-4b1c-9f3c-66ccff2ac542>
   PrefabRemaps:
     []
@@ -4170,6 +4349,23 @@
   BlendNormals: false
   BlendShapes:
     {}
+- !<AudioComponent/de6f8e46-0169-4082-ac65-96bb36ee1c56>
+  PrefabRemaps:
+    []
+  Name: Audio
+  Enabled: true
+  AudioTrack: !<reference> 4ccc1065-3784-4bcf-a4df-d486d12bca34
+  EnableAutoplayLoop: false
+  Volume: 1.000000
+  EnableMixToSnap: false
+  RecordVolume: 1.000000
+  EnableSpatialAudio: false
+  EnableDistanceEffect: false
+  CurveType: Logarithm
+  MinDistance: 0.000000
+  MaxDistance: 100.000000
+  EnableDirectivityEffect: false
+  EnablePositionEffect: false
 - !<SceneObject/de7f0884-aac0-45e2-a857-7400a2e48a1a>
   PrefabRemaps:
     []
@@ -4636,6 +4832,21 @@
     - !<own> 01b89a34-cc13-4273-a32d-78142463c8b4
   Components:
     []
+- !<SceneObject/faa9a7c0-df84-4887-8f9b-c4ca18094b17>
+  PrefabRemaps:
+    []
+  Name: WebView
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 102.400002, y: 76.800003, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> a8fae57c-b409-4645-9d3c-3b5bf3b432d0
 - !<ScreenTransform/fc3b10ef-1f12-4238-9313-aa2a067a601e>
   PrefabRemaps:
     []
