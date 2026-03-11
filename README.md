@@ -71,6 +71,7 @@ TODO - need to get a conformance test suite in to see what is missing in terms o
 
 - SpaceCanvasSamples : a general set of samples of various HTML5 canvas type features
 - SpaceCanvasGameOfLife: It's everyone's favorite Conway's Game Of Life
+- SpaceCanvasNotDoom: It's not Doom.  But it aspires to show what a FPS can look like spatially.
 
 ## Known Issues
 

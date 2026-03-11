@@ -14,19 +14,36 @@
 // ─────────────────────────────────────────────
 // btoa polyfill (Lens Studio lacks built-in)
 // ─────────────────────────────────────────────
-function btoa(input: string): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-  let output = '';
-  for (
-    let block = 0, charCode: number, i = 0, map = chars;
-    input.charAt(i | 0) || ((map = '='), i % 1);
-    output += map.charAt(63 & (block >> (8 - (i % 1) * 8)))
-  ) {
-    charCode = input.charCodeAt((i += 3 / 4));
-    if (charCode > 0xff) {
-      throw new Error('btoa: character outside Latin1 range');
+function toUTF8(str: string): string {
+  let utf8 = '';
+  for (let i = 0; i < str.length; i++) {
+    let c = str.charCodeAt(i);
+    if (c < 0x80) {
+      utf8 += String.fromCharCode(c);
+    } else if (c < 0x800) {
+      utf8 += String.fromCharCode(0xc0 | (c >> 6));
+      utf8 += String.fromCharCode(0x80 | (c & 0x3f));
+    } else {
+      utf8 += String.fromCharCode(0xe0 | (c >> 12));
+      utf8 += String.fromCharCode(0x80 | ((c >> 6) & 0x3f));
+      utf8 += String.fromCharCode(0x80 | (c & 0x3f));
     }
-    block = (block << 8) | charCode;
+  }
+  return utf8;
+}
+
+function btoa(input: string): string {
+  const bytes = toUTF8(input);
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  let output = '';
+  for (let i = 0; i < bytes.length; i += 3) {
+    const b0 = bytes.charCodeAt(i);
+    const b1 = i + 1 < bytes.length ? bytes.charCodeAt(i + 1) : 0;
+    const b2 = i + 2 < bytes.length ? bytes.charCodeAt(i + 2) : 0;
+    output += chars.charAt(b0 >> 2);
+    output += chars.charAt(((b0 & 3) << 4) | (b1 >> 4));
+    output += i + 1 < bytes.length ? chars.charAt(((b1 & 15) << 2) | (b2 >> 6)) : '=';
+    output += i + 2 < bytes.length ? chars.charAt(b2 & 63) : '=';
   }
   return output;
 }
@@ -142,7 +159,7 @@ export class SpaceContext2D {
     try {
       const encoded = btoa(html);
       print('[SpaceCanvas] flush: base64 length=' + encoded.length);
-      this.canvas.loadUrl('data:text/html;base64,' + encoded);
+      this.canvas.loadUrl('data:text/html;charset=utf-8;base64,' + encoded);
       print('[SpaceCanvas] flush: loadUrl called');
     } catch (e) {
       print('[SpaceCanvas] flush: ERROR: ' + e);
