@@ -232,14 +232,18 @@ export default class SpaceCanvasNokiaSnakesDemo extends BaseScriptComponent {
 
     snake.push({ x: nx, y: ny });
 
-    // Eat food
+    // Eat food — bonus points + speed up
     if (nx === food.x && ny === food.y) {
       score += 10;
       playEatSound();
-      // Speed up slightly
       if (speed > 60) speed -= 2;
       placeFood();
-    } else {
+    }
+
+    // Snake always grows by 1 each step (tail extends).
+    // Only shed the oldest segment once the snake is very long
+    // to prevent filling the entire board too fast.
+    if (snake.length > COLS * ROWS) {
       snake.shift();
     }
   }
