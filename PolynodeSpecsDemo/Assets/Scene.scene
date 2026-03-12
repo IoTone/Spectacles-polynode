@@ -1666,6 +1666,7 @@
     - !<own> 951d452a-03cb-4557-8bc5-26757f062639
     - !<own> 6e8a78ca-b6cc-480d-8c8c-45585c9bdcd3
     - !<own> 3f5b0742-276f-4339-a3af-ad09c64088e2
+    - !<own> 6197043d-36e5-4cf6-af1a-28010ac91903
   Components:
     - !<own> 362ec872-2cc2-45ae-8db0-449521938eec
 - !<SceneObject/47396be1-881f-44ea-82d1-160299162b59>
@@ -1713,6 +1714,68 @@
   BlendNormals: false
   BlendShapes:
     {}
+- !<ScriptComponent/4b51c10f-1d01-453c-923c-a7d675bc4231>
+  PrefabRemaps:
+    []
+  Name: ContainerFrame
+  Enabled: true
+  ScriptAsset: !<reference> 35d1bbb6-6a1d-4e80-abec-791ea8af19ec
+  ScriptInputsDefault:
+    autoScaleContent: true
+    relativeZ: true
+    isContentInteractable: true
+    allowTranslation: true
+    cutOut: true
+    minimumSize: true
+    useBillboarding: true
+    xOnTranslate: true
+    xAlways: true
+    yOnTranslate: true
+    yAlways: true
+    useSnapping: true
+    itemSnapping: true
+    worldSnapping: true
+    showFollowButton: true
+    useFOVFollow: true
+    isFollowing: true
+    showCloseButton: true
+    _enableInteractionPlane: true
+    _targetingVisual: true
+    isSynced: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      autoShowHide: false
+      innerSize: !<Vec2> {x: 15.000000, y: 15.000000}
+      border: !<float> 50.000000
+      constantPadding: !<Vec2> {x: 2.000000, y: 2.000000}
+      allowScaling: false
+      autoScaleContent: true
+      relativeZ: false
+      isContentInteractable: false
+      allowTranslation: true
+      cutOut: false
+      minimumSize: !<Vec2> {x: 10.000000, y: 10.000000}
+      maximumSize: !<Vec2> {x: 800.000000, y: 800.000000}
+      useBillboarding: false
+      xOnTranslate: false
+      xAlways: false
+      yOnTranslate: false
+      yAlways: false
+      useSnapping: false
+      itemSnapping: false
+      worldSnapping: false
+      showFollowButton: false
+      useFOVFollow: false
+      isFollowing: false
+      showCloseButton: true
+      _enableInteractionPlane: false
+      _targetingVisual: !<float> 1.000000
+      isSynced: false
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/4b9081aa-90ad-4332-b00a-a0cd9738f747>
   PrefabRemaps:
     []
@@ -1918,6 +1981,21 @@
     - !<own> 0904b654-01f0-482d-b1f3-1d0c84ce1eb7
   Components:
     []
+- !<SceneObject/54029a3e-26ad-4f95-96b1-3823ef3f3ed0>
+  PrefabRemaps:
+    []
+  Name: SpaceSVGDemo
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> cee1acc3-df4a-416a-9d56-89066fcdbb81
 - !<SceneObject/5411519e-4659-4c8c-ab5f-6d3a1726688f>
   PrefabRemaps:
     []
@@ -2303,6 +2381,21 @@
     []
   Components:
     - !<own> d864da2a-1812-4727-9c15-7c03c5bb0744
+- !<SceneObject/6197043d-36e5-4cf6-af1a-28010ac91903>
+  PrefabRemaps:
+    []
+  Name: SpaceSVGContainer
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: -30.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    - !<own> 54029a3e-26ad-4f95-96b1-3823ef3f3ed0
+  Components:
+    - !<own> 4b51c10f-1d01-453c-923c-a7d675bc4231
 - !<SceneObject/621a6a90-14aa-4d6a-ba5a-cbb4fbedbfcb>
   PrefabRemaps:
     []
@@ -2516,7 +2609,7 @@
   PrefabRemaps:
     []
   Name: SpaceCanvasNotDoomDemoContainer
-  Enabled: true
+  Enabled: false
   Layers: 1
   LocalTransform: !<TransformEntity>
     Position: {x: 0.000000, y: 0.000000, z: 0.000000}
@@ -4038,6 +4131,28 @@
     - !<own> e66e3980-4ccd-41bc-8157-06899969e61d
   Components:
     - !<own> 7b9083d8-687c-4f72-a07c-669ccfb71089
+- !<ScriptComponent/cee1acc3-df4a-416a-9d56-89066fcdbb81>
+  PrefabRemaps:
+    []
+  Name: SpaceSVGDemo
+  Enabled: true
+  ScriptAsset: !<reference> e1c744d1-09ea-429c-9589-2548457a5ca5
+  ScriptInputsDefault:
+    worldWidth: true
+    worldHeight: true
+    cycleInterval: true
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      material: !<reference.Material> 1099ba00-48e9-4c79-b7b5-bfc4b1afdbd4
+      worldWidth: !<float> 20.000000
+      worldHeight: !<float> 20.000000
+      demoIndex: !<float> 14.000000
+      cycleInterval: !<float> 0.000000
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/cefaa993-69da-4967-b623-50bc3be8b63c>
   PrefabRemaps:
     []

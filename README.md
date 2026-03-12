@@ -5,8 +5,8 @@ Spectacles Polynode is a "polyfill" for missing libraries from Node.js and HTML5
 These are the currently supported libraries:
 
 - Spacecanvas
+- SpaceSVG
 - (future) Spacedom
-- (future) SVG (this may already work, but need to test)
 
 ![Image](https://github.com/user-attachments/assets/d5256b9a-dce3-4d49-9752-9877cfe56be6)
 
@@ -15,6 +15,15 @@ These are the currently supported libraries:
 ## Build
 
 At the moment the repo doesn't have a prefab created for the library, but you can just add the library to an existing project.  For a good example, see SpaceCanvasDemo.ts or SpaceCanvasGameOfLife.ts.  
+
+### SpaceSVG Examples
+
+There is a single library called SpaceSVG.ts, and a library called SpaceSVGDemo.  Just make sure to have the library in your assets, and move whatever demo or working code you have into the Scene.
+
+Here is how to get started.
+
+
+### Spacecanvas Examples
 
 The general scheme to follow in your code is to import the libraries you need
 
@@ -72,13 +81,16 @@ TODO - need to get a conformance test suite in to see what is missing in terms o
 - SpaceCanvasSamples : a general set of samples of various HTML5 canvas type features
 - SpaceCanvasGameOfLife: It's everyone's favorite Conway's Game Of Life
 - SpaceCanvasNotDoom: It's not Doom.  But it aspires to show what a FPS can look like spatially.
-
+- SpaceCanvasNokiSnakesDemo: It's not the old Nokia classic Snake game, but it is a very similar style and design, with controls and sound.
+- SpaceSVGDemo: A full suite of 18 demos that show different styles of SVG.  The full catalog of samples is documented in the docs directory.
+ 
 ## Known Issues
 
 - Heat!  :fire It will overheat your device quickly if you have a busy canvas
 - compatibility: may not be 100% 1-1 with HTML5 Canvas
 - Multiple canvases may not render simulatenously.   Not sure if this is a WebView issue that it only will run one at a time.
-
+- The SpaceSVG code is a prototype level and not intended to be compliant with any level of SVG specification.  As such, all examples don't have the polish of their equivalent browser versions.  Fonts may be missing.  
+- The SpaceSVG code needs a detailed explanation of what SVG compliance is availablee.
 ## Roadmap
 
 - Add DOM api for porting compability: spacedom
@@ -93,5 +105,7 @@ I started to think the problem was not me, but the ecosystem.  All ecosystems as
 90% of this code was built by a mix of Grok (I started with this prompt): I am building a spatial version of HTML5 canvas as a widget to use in Lens Studio for Snap Spectacles. Please propose an approach for designing an HTML5 canvas design that will work in 3D space and provde a performant best effort pollyfill/shim for canvas from html5. To avoid confusion with a similarly named classes, and lets call it spacecanvas. The code proposal should use Typescript and utilize Lens Scripting apis : https://developers.snap.com/lens-studio/api/lens-scripting/
 
 Grok had a lot of issues with inventing apis that didn't exist, but conceptually, it came up with the core concept: use a WebView to get the HTML5 context without re-inventing that.  Then expose the API for canvas in a wrapper to the SpaceCanvas api.  Grok got a bit annoying in its inability to solve problems once stuck.  So in comes claude code to cleanup the existing code produced by Grok, which was just Spacecanvas.ts.  Claude produced a working design after we gave up trying to use a programatic WebView and switched to using one placed in the scene.
+
+SVG work was 100% done in claude api with a cave human drooling over the keyboard and smashing like buttons on the terminal.  Initially the human tried just dragging SVGs into assets and realized with sadness this wasn't a supported file type.
 
 Special thanks to the product team for dropping this little detail about how to inject data into the WebView : https://www.reddit.com/r/Spectacles/comments/1rjsa2x/comment/o8hzrrm/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button .  This gives us offline capability to render data from within a Spectacles Lens Script API.
