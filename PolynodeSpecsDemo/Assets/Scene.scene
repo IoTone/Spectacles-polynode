@@ -1988,7 +1988,7 @@
   Enabled: true
   Layers: 1
   LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Position: {x: 0.000000, y: 0.000000, z: 10.000000}
     Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
@@ -4150,6 +4150,7 @@
       worldHeight: !<float> 20.000000
       demoIndex: !<float> 14.000000
       cycleInterval: !<float> 0.000000
+      buttonPrefab: !<reference.ObjectPrefab> c6634e37-b185-4112-aecd-b47a832c89d1
   ScriptTypes:
     "":
       {}

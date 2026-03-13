@@ -563,6 +563,10 @@ export default class SpaceSVGDemo extends BaseScriptComponent {
   @hint('Seconds between demos when cycling (0 to disable)')
   cycleInterval: number = 0;
 
+  @input
+  @hint('Optional: Button prefab from SpectaclesUIKit (e.g., FrameButton) for prev/next navigation')
+  buttonPrefab: ObjectPrefab;
+
   private parser = new SVGXMLParser();
   private backend = new SpaceSVGMeshBackend();
   private meshObjects: SceneObject[] = [];
@@ -570,6 +574,8 @@ export default class SpaceSVGDemo extends BaseScriptComponent {
   private timer: number = 0;
   private lastSecond: number = -1;
   private isAnimatedDemo: boolean = false;
+  private labelText: Text | null = null;
+  private navObjects: SceneObject[] = [];
 
   onAwake() {
     print('[SpaceSVGDemo] onAwake');
@@ -581,6 +587,7 @@ export default class SpaceSVGDemo extends BaseScriptComponent {
 
     this.currentDemo = Math.max(0, Math.min(this.demoIndex, DEMOS.length - 1));
     this.renderDemo(this.currentDemo);
+    this.setupNavigation();
 
     this.createEvent('UpdateEvent').bind((ev: UpdateEvent) => {
       this.timer += ev.getDeltaTime();
@@ -600,6 +607,7 @@ export default class SpaceSVGDemo extends BaseScriptComponent {
         this.timer = 0;
         this.currentDemo = (this.currentDemo + 1) % DEMOS.length;
         this.renderDemo(this.currentDemo);
+        this.updateLabel();
       }
     });
   }
@@ -677,6 +685,151 @@ export default class SpaceSVGDemo extends BaseScriptComponent {
     );
 
     this.meshObjects.push(obj);
+  }
+
+  // ─── Navigation UI ──────────────────────────────────
+
+  private setupNavigation(): void {
+    if (!this.buttonPrefab) {
+      print('[SpaceSVGDemo] No buttonPrefab assigned — use demoIndex input or cycleInterval for navigation');
+      return;
+    }
+
+    const navRoot = global.scene.createSceneObject('NavUI');
+    navRoot.setParent(this.getSceneObject());
+    navRoot.getTransform().setLocalPosition(new vec3(0, -this.worldHeight / 2 - 3, 0));
+    this.navObjects.push(navRoot);
+
+    // Prev button (left side)
+    const prevObj = this.buttonPrefab.instantiate(navRoot);
+    prevObj.name = 'PrevButton';
+    prevObj.getTransform().setLocalPosition(new vec3(-8, 0, 0));
+    prevObj.getTransform().setLocalScale(new vec3(0.5, 0.5, 0.5));
+    this.navObjects.push(prevObj);
+    this.setButtonLabel(prevObj, '\u25C0');
+    this.hookButtonEvent(prevObj, () => this.navigateDemo(-1));
+
+    // Demo name label (center) — offset Z forward so it's in front of button surfaces
+    const labelObj = global.scene.createSceneObject('DemoLabel');
+    labelObj.setParent(navRoot);
+    labelObj.getTransform().setLocalPosition(new vec3(0, 0, 0.5));
+    const textComp = labelObj.createComponent('Component.Text') as Text;
+    textComp.text = this.getDemoLabel();
+    try { (textComp as any).textFill.color = new vec4(1, 1, 1, 1); } catch (e) { /* textFill may not be set yet */ }
+    this.labelText = textComp;
+    this.navObjects.push(labelObj);
+
+    // Next button (right side)
+    const nextObj = this.buttonPrefab.instantiate(navRoot);
+    nextObj.name = 'NextButton';
+    nextObj.getTransform().setLocalPosition(new vec3(8, 0, 0));
+    nextObj.getTransform().setLocalScale(new vec3(0.5, 0.5, 0.5));
+    this.navObjects.push(nextObj);
+    this.setButtonLabel(nextObj, '\u25B6');
+    this.hookButtonEvent(nextObj, () => this.navigateDemo(1));
+
+    print(`[SpaceSVGDemo] Navigation buttons created — ${DEMOS.length} demos available`);
+  }
+
+  private setButtonLabel(obj: SceneObject, label: string): void {
+    // Try immediately first
+    const textComp = this.findTextComponent(obj);
+    if (textComp) {
+      this.applyLabelStyle(textComp, label);
+      print(`[SpaceSVGDemo] Set label "${label}" on ${obj.name}`);
+      return;
+    }
+    // Prefab components may not be ready yet — defer to next frame
+    print(`[SpaceSVGDemo] Text not found on ${obj.name} yet, deferring...`);
+    this.createEvent('UpdateEvent').bind((ev: UpdateEvent) => {
+      const deferred = this.findTextComponent(obj);
+      if (deferred) {
+        this.applyLabelStyle(deferred, label);
+        print(`[SpaceSVGDemo] Deferred label "${label}" set on ${obj.name}`);
+      } else {
+        // Log hierarchy for debugging
+        this.logHierarchy(obj, 0);
+        print(`[SpaceSVGDemo] Warning: Still no Text component on ${obj.name}`);
+      }
+    });
+  }
+
+  private applyLabelStyle(textComp: Text, label: string): void {
+    textComp.text = label;
+    // Ensure text is white and visible
+    try { (textComp as any).textFill.color = new vec4(1, 1, 1, 1); } catch (e) { /* textFill may not be set yet */ }
+    // Push the text's SceneObject forward in Z so it's in front of the button surface
+    const textObj = textComp.getSceneObject();
+    const pos = textObj.getTransform().getLocalPosition();
+    textObj.getTransform().setLocalPosition(new vec3(pos.x, pos.y, pos.z + 0.5));
+  }
+
+  private findTextComponent(obj: SceneObject): Text | null {
+    const text = obj.getComponent('Component.Text');
+    if (text) return text;
+    for (let i = 0; i < obj.getChildrenCount(); i++) {
+      const result = this.findTextComponent(obj.getChild(i));
+      if (result) return result;
+    }
+    return null;
+  }
+
+  private logHierarchy(obj: SceneObject, depth: number): void {
+    const indent = '  '.repeat(depth);
+    const compCount = obj.getComponentCount ? (obj as any).getComponentCount() : '?';
+    print(`${indent}[Hierarchy] "${obj.name}" children=${obj.getChildrenCount()}`);
+    // Log component types if available
+    try {
+      const scripts = obj.getComponents('Component.ScriptComponent');
+      if (scripts.length > 0) print(`${indent}  scripts: ${scripts.length}`);
+    } catch (e) { /* ignore */ }
+    for (let i = 0; i < obj.getChildrenCount(); i++) {
+      this.logHierarchy(obj.getChild(i), depth + 1);
+    }
+  }
+
+  private hookButtonEvent(root: SceneObject, callback: () => void): void {
+    const api = this.findButtonApi(root);
+    if (api) {
+      api.onTriggerUp.add(callback);
+      print(`[SpaceSVGDemo] Hooked button event: ${root.name}`);
+    } else {
+      print(`[SpaceSVGDemo] Warning: Could not find button API on ${root.name}`);
+    }
+  }
+
+  private findButtonApi(obj: SceneObject): any {
+    // Search script components on this object for UIKit button API (onTriggerUp event)
+    const scripts = obj.getComponents('Component.ScriptComponent');
+    for (let i = 0; i < scripts.length; i++) {
+      const s = scripts[i] as any;
+      if (s.api && s.api.onTriggerUp) return s.api;
+      // Some UIKit components expose events directly
+      if (s.onTriggerUp) return s;
+    }
+    // Recurse into children (prefab may have nested button component)
+    for (let i = 0; i < obj.getChildrenCount(); i++) {
+      const result = this.findButtonApi(obj.getChild(i));
+      if (result) return result;
+    }
+    return null;
+  }
+
+  private navigateDemo(direction: number): void {
+    this.currentDemo = (this.currentDemo + direction + DEMOS.length) % DEMOS.length;
+    this.renderDemo(this.currentDemo);
+    this.updateLabel();
+    print(`[SpaceSVGDemo] Navigated to: ${DEMOS[this.currentDemo].name}`);
+  }
+
+  private getDemoLabel(): string {
+    return `${this.currentDemo + 1}/${DEMOS.length} ${DEMOS[this.currentDemo].name}`;
+  }
+
+  private updateLabel(): void {
+    if (this.labelText) {
+      this.labelText.text = this.getDemoLabel();
+    }
   }
 
   private clearMeshes(): void {

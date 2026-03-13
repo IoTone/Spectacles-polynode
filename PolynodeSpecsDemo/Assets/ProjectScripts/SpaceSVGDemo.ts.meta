@@ -26,6 +26,7 @@
   ExportUid: 00000000-0000-0000-0000-000000000000
   PackagePolicy: CanBeUnpacked
   ScriptInputsHidden:
+    buttonPrefab: false
     cycleInterval: false
     demoIndex: false
     material: false
@@ -45,6 +46,7 @@
       worldHeight: !<float> 20.000000
       demoIndex: !<float> 0.000000
       cycleInterval: !<float> 0.000000
+      buttonPrefab: !<reference.ObjectPrefab> 00000000-0000-0000-0000-000000000000
   ScriptTypes:
     -
       {}
@@ -54,3 +56,4 @@
     - '// @input float worldHeight = 20 {"hint":"World-space height"}'
     - '// @input float demoIndex {"hint":"Which demo to show (0-based index)"}'
     - '// @input float cycleInterval {"hint":"Seconds between demos when cycling (0 to disable)"}'
+    - '// @input Asset.ObjectPrefab buttonPrefab {"hint":"Optional: Button prefab from SpectaclesUIKit (e.g., FrameButton) for prev/next navigation"}'
