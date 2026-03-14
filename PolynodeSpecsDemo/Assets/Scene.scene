@@ -1721,6 +1721,7 @@
   Enabled: true
   ScriptAsset: !<reference> 35d1bbb6-6a1d-4e80-abec-791ea8af19ec
   ScriptInputsDefault:
+    allowScaling: true
     autoScaleContent: true
     relativeZ: true
     isContentInteractable: true
@@ -1750,14 +1751,14 @@
       innerSize: !<Vec2> {x: 15.000000, y: 15.000000}
       border: !<float> 50.000000
       constantPadding: !<Vec2> {x: 2.000000, y: 2.000000}
-      allowScaling: false
+      allowScaling: true
       autoScaleContent: true
       relativeZ: false
       isContentInteractable: false
       allowTranslation: true
       cutOut: false
       minimumSize: !<Vec2> {x: 10.000000, y: 10.000000}
-      maximumSize: !<Vec2> {x: 800.000000, y: 800.000000}
+      maximumSize: !<Vec2> {x: 64.000000, y: 64.000000}
       useBillboarding: false
       xOnTranslate: false
       xAlways: false
@@ -3337,7 +3338,7 @@
   ShadowDensity: 1.000000
   Materials:
     - !<reference> 175be50f-f48c-409b-9d56-b94163a7e8c6
-  Text: Polynode v0.3
+  Text: Polynode v0.4
   Editable: false
   ShowEditingPreview: true
   TouchHandler: !<reference> 00000000-0000-0000-0000-000000000000

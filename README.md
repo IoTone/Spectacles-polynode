@@ -22,6 +22,8 @@ There is a single library called SpaceSVG.ts, and a library called SpaceSVGDemo.
 
 Here is how to get started.
 
+<img width="482" height="431" alt="Image" src="https://github.com/user-attachments/assets/46fc9f75-e6d5-4533-9528-dc5d9b8a7795" />
+
 
 ### Spacecanvas Examples
 
@@ -91,10 +93,14 @@ TODO - need to get a conformance test suite in to see what is missing in terms o
 - Multiple canvases may not render simulatenously.   Not sure if this is a WebView issue that it only will run one at a time.
 - The SpaceSVG code is a prototype level and not intended to be compliant with any level of SVG specification.  As such, all examples don't have the polish of their equivalent browser versions.  Fonts may be missing.  
 - The SpaceSVG code needs a detailed explanation of what SVG compliance is availablee.
+
 ## Roadmap
 
 - Add DOM api for porting compability: spacedom
-- Add SVG rendering support
+- Improve SVG rendering support
+- Overall power-consumption improvements for animations
+- Add AI hooks to make it easy for AI to use the APIs at runtime to generate assets
+
 
 ## Attributions
 
