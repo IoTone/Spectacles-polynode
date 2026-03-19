@@ -151,7 +151,7 @@ All errors include context: element tag name, element id (if present), attribute
 
 ## Demo Catalog (`SpaceSVGDemo.ts`)
 
-The demo component (`demoIndex` input in Inspector) provides 18 visual demos covering all Phase 1 features. Set `cycleInterval` > 0 to auto-cycle.
+The demo component (`demoIndex` input in Inspector) provides 21 visual demos covering all Phase 1 features plus MathJax/LaTeX rendering. Set `cycleInterval` > 0 to auto-cycle. Prev/Next navigation buttons are created automatically.
 
 | Index | Name | Features Exercised |
 |-------|------|--------------------|
@@ -166,19 +166,37 @@ The demo component (`demoIndex` input in Inspector) provides 18 visual demos cov
 | 8 | Stroke | Stroke on rect, circle, line, and curved path |
 | 9 | Opacity | `opacity` and `fill-opacity` on overlapping shapes |
 | 10 | Style Attribute | Inline `style="..."` overriding presentation attributes |
-| 11 | Snap Logo | Multi-element composition (face with eyes, mouth, body) |
+| 11 | Have a Nice Day Logo | Multi-element composition (face with eyes, mouth, body) |
 | 12 | Fancy Text "SVG" | Bezier curve lettering, decorative accents, corner brackets |
 | 13 | Block Text "HELLO" | Geometric block letters from colored rectangles with shadows |
 | 14 | Analog Clock | **Animated** — real-time clock rebuilt every second, hour/minute/second hands, tick marks |
 | 15 | Sinc Plot Chart | Data visualization — sinc(x) curve, grid lines, axes, tick marks |
 | 16 | Heatmap | Generated 10x10 color grid with blue-to-red radial gradient, legend bar |
 | 17 | Tiger Face | Complex illustration — 40+ elements: fur, stripes, eyes, nose, whiskers, ears |
+| 18 | SVG Logo | Multi-path logo with masks and `<use>` references |
+| 19 | SVG LATEX1 | MathJax summation formula — complex `<path>` glyphs via `<defs>`/`<use>`, Y-flip `matrix` transform |
+| 20 | SVG LATEX2 | **Animated** — countdown from a=10 to a=0 with MathJax glyphs (see below) |
+
+### SVG LATEX2: Animated Countdown Demo
+
+This demo exercises dynamic SVG generation with MathJax font glyphs and native `Text` for UI.
+
+**Display:**
+- **Native `Text` component** (top): Instruction sentence — "Solve the expression for a when a equals N" where N is the current countdown value
+- **SVG row 1** (white / green): The assertion `a ≠ 0` while a > 0, switches to `a = 0` in green when solved
+- **SVG row 2** (grey): Current value `a = 10`, `a = 9`, ..., `a = 0`
+
+**Implementation:**
+- `buildLatexCountdownSVG(value)` dynamically generates the SVG each second
+- MathJax glyph paths for digits 0–9, italic 'a', '=', and '≠' are embedded in `<defs>`
+- The instruction text uses a native Lens Studio `Text` component, NOT SVG text rendering (see "Text Rendering Strategy" below)
+- Countdown resets to 10 when navigating back to this demo
 
 ### Setup
 
 1. Add `SpaceSVGDemo` script to a SceneObject (e.g., inside a ContainerFrame)
 2. Assign an unlit material to the `material` input
-3. Set `demoIndex` (0–17) to select a demo
+3. Set `demoIndex` (0–20) to select a demo
 4. Optionally set `cycleInterval` (seconds) to auto-cycle through all demos
 5. Set `worldWidth` / `worldHeight` to control output size (default: 20x20)
 
@@ -220,6 +238,33 @@ Add `SpaceSVGTestSuite` script to any SceneObject. Tests run automatically on `o
 ═══════════════════════════════════════
 ```
 
+## Text Rendering Strategy
+
+Text in SpaceSVG demos falls into two distinct categories that require different solutions.
+
+### Problem
+
+The LATEX2 countdown demo needs to display an instruction sentence ("Solve the expression for a when a equals N") alongside SVG math expressions. This is a text rendering problem — but the right solution depends on what the text IS.
+
+### Options Evaluated
+
+| Option | Approach | Verdict |
+|--------|----------|---------|
+| **Pixel font via SVG paths** | Render text as hundreds of tiny `<rect>` subpaths using an 8x8 bitmap font embedded in the SVG | Rejected. Adds ~60 lines of bitmap data, generates hundreds of mesh subpaths even with run-length optimization, poor visual quality vs native text. Wrong tool for UI text. |
+| **MathJax glyph paths for all letters** | Source vector outline paths for every letter from the MathJax TeX font | Rejected. Requires hundreds of glyph path definitions, heavy maintenance, inflexible for general text. Only appropriate for math symbols. |
+| **SVG `<text>` element support** | Implement full `<text>`/`<tspan>` rendering in SpaceSVG (Phase 2 feature) | Deferred. Correct long-term solution for text WITHIN SVGs, but requires font glyph loading, text layout, and path conversion. Overkill for a demo instruction label. |
+| **Native `Text` component** | Use Lens Studio's built-in `Component.Text` for the instruction sentence | **Adopted.** Zero font handling code. Renders crisp at any size. Already used in the demo for nav labels. UI text belongs as a native component, not inside SVG. |
+| **Font library (e.g., opentype.js)** | Import a JS font parsing library to convert TTF/OTF glyphs to SVG paths at runtime | Rejected for now. Heavy dependency, complex porting to Lens Studio runtime. Revisit if Phase 2 `<text>` needs high-fidelity font rendering. |
+
+### Decision
+
+**Use native `Text` components for UI/instructional text. Reserve SVG-based text rendering for Phase 2 `<text>` element support.**
+
+The boundary is clear:
+- **Native `Text`**: Labels, instructions, UI — anything that describes or annotates the SVG content
+- **SVG text (Phase 2)**: Text that is part of the SVG document itself (e.g., axis labels in a chart SVG, text elements in an imported SVG file)
+- **MathJax glyph paths**: Math symbols and expressions — already working via `<path>` definitions in `<defs>` with `<use>` references
+
 ## Implementation Notes
 
 ### MeshBuilder Patterns (from Spectacles Samples)
@@ -244,6 +289,33 @@ The native mesh approach follows patterns from official Snap Spectacles samples 
 ### Stroke Rendering
 
 Strokes use direct quad triangulation (not ear-clipping) to handle closed paths correctly. Each path segment generates a quad (2 triangles) between left/right offset edges. Closed paths (first == last point) wrap the final quad back to the first vertex pair.
+
+### Subpath Merging (Draw Call Optimization)
+
+All subpaths within a single SVG element are merged into one mesh group for both fill and stroke. Previously, each subpath created a separate `RenderMeshVisual` scene object (one draw call each). Now a `<path>` with N subpaths produces 1 fill mesh group + 1 stroke mesh group instead of 2N.
+
+This is critical for:
+- **Complex glyphs**: Digit "8" has 3 subpaths (outer + 2 holes) → now 1 draw call instead of 3
+- **Compound paths**: Any SVG path with multiple M...Z sequences
+- **Future pixel/bitmap text**: If SVG-based text is ever needed, merged subpaths prevent draw call explosion
+
+Implementation: vertices from all subpaths are concatenated into one array, with triangle indices offset by `baseVertex = mergedVerts.length / 3` for each successive subpath.
+
+### Error Logging and Diagnostics
+
+Parse errors and unhandled SVG directives are logged to help diagnose rendering failures:
+
+| Situation | Log Level | Message |
+|-----------|-----------|---------|
+| `<use>` target not found | Error | `[SpaceSVG] Error: <use> target "#id" not found in document` |
+| `<path>` missing `d` attribute | Warning | `[SpaceSVG] Warning: <path> element has no 'd' attribute` |
+| Unknown SVG element | Warning | `[SpaceSVG] Warning: unhandled SVG element <tagName>` |
+| Fill triangulation failure | Warning | `[SpaceSVG] Warning: fill triangulation failed for <tagName> (N points)` |
+
+Tags are classified into three sets:
+- **Container tags** (`svg`, `g`, `a`, `symbol`, `switch`): Process children, no own geometry — silent
+- **Metadata tags** (`title`, `desc`, `metadata`): No visual output — silent
+- **Everything else**: Logged as warning if not a known shape
 
 ## Risks and Mitigations
 

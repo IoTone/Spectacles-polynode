@@ -1089,31 +1089,25 @@ class SpaceSVGMeshBackend {
         }
       }
 
-      // Fill
+      // Fill — bridge holes into outers, merge into one mesh group
       const fillColor = parseColor(style.fill);
       if (fillColor) {
         fillColor[3] *= style.opacity * style.fillOpacity;
-        for (const sp of subpaths) {
-          if (sp.length < 3) continue;
-          const poly = [...sp];
-          if (poly.length > 1 &&
-            poly[0].x === poly[poly.length - 1].x &&
-            poly[0].y === poly[poly.length - 1].y) {
-            poly.pop();
-          }
-          if (poly.length < 3) continue;
-
+        const polygons = this.preparePolygonsWithHoles(subpaths);
+        const mergedVerts: number[] = [];
+        const mergedIndices: number[] = [];
+        for (const poly of polygons) {
           const triIndices = this.triangulator.triangulate(poly);
           if (triIndices.length === 0) {
             print(`[SpaceSVG] Warning: fill triangulation failed for <${node.tagName}> (${poly.length} points)`);
             continue;
           }
 
-          const verts: number[] = [];
+          const baseVertex = mergedVerts.length / 3;
           for (const p of poly) {
             const wx = (p.x - vbX) * scale - worldWidth / 2;
             const wy = worldHeight / 2 - (p.y - vbY) * scale;
-            verts.push(wx, wy, 0);
+            mergedVerts.push(wx, wy, 0);
           }
 
           // Y-flip reverses winding order — swap each triangle to fix back-face culling
@@ -1123,28 +1117,35 @@ class SpaceSVGMeshBackend {
             triIndices[ti + 2] = tmp;
           }
 
+          for (const idx of triIndices) {
+            mergedIndices.push(idx + baseVertex);
+          }
+        }
+        if (mergedIndices.length > 0) {
           groups.push({
-            vertices: verts,
-            indices: triIndices,
+            vertices: mergedVerts,
+            indices: mergedIndices,
             color: [fillColor[0], fillColor[1], fillColor[2], fillColor[3]],
           });
         }
       }
 
-      // Stroke — use direct quad triangulation (handles closed paths correctly)
+      // Stroke — merge all subpaths into one mesh group to minimize draw calls
       const strokeColor = parseColor(style.stroke);
       if (strokeColor && style.strokeWidth > 0) {
         strokeColor[3] *= style.opacity * style.strokeOpacity;
+        const mergedVerts: number[] = [];
+        const mergedIndices: number[] = [];
         for (const sp of subpaths) {
           if (sp.length < 2) continue;
           const stroke = this.triangulator.triangulateStroke(sp, style.strokeWidth);
           if (stroke.vertices.length < 2 || stroke.indices.length < 3) continue;
 
-          const verts: number[] = [];
+          const baseVertex = mergedVerts.length / 3;
           for (const p of stroke.vertices) {
             const wx = (p.x - vbX) * scale - worldWidth / 2;
             const wy = worldHeight / 2 - (p.y - vbY) * scale;
-            verts.push(wx, wy, 0);
+            mergedVerts.push(wx, wy, 0);
           }
 
           const triIndices = stroke.indices;
@@ -1156,9 +1157,14 @@ class SpaceSVGMeshBackend {
             triIndices[ti + 2] = tmp;
           }
 
+          for (const idx of triIndices) {
+            mergedIndices.push(idx + baseVertex);
+          }
+        }
+        if (mergedIndices.length > 0) {
           groups.push({
-            vertices: verts,
-            indices: triIndices,
+            vertices: mergedVerts,
+            indices: mergedIndices,
             color: [strokeColor[0], strokeColor[1], strokeColor[2], strokeColor[3]],
           });
         }
@@ -1168,6 +1174,141 @@ class SpaceSVGMeshBackend {
     for (const child of node.children) {
       this.processNode(child, groups, style, vbX, vbY, scale, worldWidth, worldHeight);
     }
+  }
+
+  // ─── Hole-aware polygon preparation ───────────────
+
+  // Groups subpaths into outer contours with bridged holes.
+  // Holes are detected by opposite winding direction + point-in-polygon containment.
+  // Each hole is bridged into its parent outer via a zero-width cut, creating a
+  // single polygon that ear-clipping can triangulate with the hole left empty.
+  private preparePolygonsWithHoles(subpaths: Point[][]): Point[][] {
+    const polys: { pts: Point[]; area: number }[] = [];
+    for (const sp of subpaths) {
+      if (sp.length < 3) continue;
+      const pts = [...sp];
+      if (pts.length > 1 &&
+        Math.abs(pts[0].x - pts[pts.length - 1].x) < 0.001 &&
+        Math.abs(pts[0].y - pts[pts.length - 1].y) < 0.001) {
+        pts.pop();
+      }
+      if (pts.length < 3) continue;
+      const area = this.polySignedArea(pts);
+      polys.push({ pts, area });
+    }
+
+    if (polys.length <= 1) return polys.map(p => p.pts);
+
+    // Largest absolute area first — these are outer contours
+    polys.sort((a, b) => Math.abs(b.area) - Math.abs(a.area));
+
+    const result: Point[][] = [];
+    const assigned = new Set<number>();
+
+    for (let i = 0; i < polys.length; i++) {
+      if (assigned.has(i)) continue;
+      let outer = polys[i].pts;
+      const outerArea = polys[i].area;
+
+      // Find holes: smaller subpaths with opposite winding contained in this outer
+      const holes: Point[][] = [];
+      for (let j = i + 1; j < polys.length; j++) {
+        if (assigned.has(j)) continue;
+        if (outerArea * polys[j].area < 0 &&
+          this.isPointInPoly(polys[j].pts[0], outer)) {
+          holes.push(polys[j].pts);
+          assigned.add(j);
+        }
+      }
+
+      if (holes.length > 0) {
+        // Process rightmost holes first for correct bridge ordering
+        holes.sort((a, b) => {
+          const maxA = a.reduce((m, p) => Math.max(m, p.x), -Infinity);
+          const maxB = b.reduce((m, p) => Math.max(m, p.x), -Infinity);
+          return maxB - maxA;
+        });
+        for (const hole of holes) {
+          outer = this.bridgeHole(outer, hole);
+        }
+      }
+
+      result.push(outer);
+    }
+
+    return result;
+  }
+
+  private polySignedArea(poly: Point[]): number {
+    let area = 0;
+    for (let i = 0; i < poly.length; i++) {
+      const j = (i + 1) % poly.length;
+      area += poly[i].x * poly[j].y - poly[j].x * poly[i].y;
+    }
+    return area / 2;
+  }
+
+  private isPointInPoly(p: Point, poly: Point[]): boolean {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      if ((poly[i].y > p.y) !== (poly[j].y > p.y) &&
+        p.x < (poly[j].x - poly[i].x) * (p.y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x) {
+        inside = !inside;
+      }
+    }
+    return inside;
+  }
+
+  private bridgeHole(outer: Point[], hole: Point[]): Point[] {
+    // Find rightmost point of the hole
+    let hIdx = 0;
+    for (let i = 1; i < hole.length; i++) {
+      if (hole[i].x > hole[hIdx].x) hIdx = i;
+    }
+    const hp = hole[hIdx];
+
+    // Cast horizontal ray right from hp, find nearest intersecting outer edge
+    let bestIdx = 0;
+    let bestDist = Infinity;
+    let foundEdge = false;
+
+    for (let i = 0; i < outer.length; i++) {
+      const j = (i + 1) % outer.length;
+      const a = outer[i], b = outer[j];
+      if (a.y === b.y) continue;
+      if ((a.y - hp.y) * (b.y - hp.y) > 0) continue;
+      const t = (hp.y - a.y) / (b.y - a.y);
+      if (t < 0 || t > 1) continue;
+      const ix = a.x + t * (b.x - a.x);
+      if (ix >= hp.x && ix < bestDist) {
+        bestDist = ix;
+        // Pick the endpoint of this edge closest to hp
+        const dI = Math.hypot(a.x - hp.x, a.y - hp.y);
+        const dJ = Math.hypot(b.x - hp.x, b.y - hp.y);
+        bestIdx = dI <= dJ ? i : j;
+        foundEdge = true;
+      }
+    }
+
+    if (!foundEdge) {
+      // Fallback: nearest outer vertex
+      bestDist = Infinity;
+      for (let i = 0; i < outer.length; i++) {
+        const d = Math.hypot(outer[i].x - hp.x, outer[i].y - hp.y);
+        if (d < bestDist) { bestDist = d; bestIdx = i; }
+      }
+    }
+
+    // Build combined polygon: outer[0..bestIdx] + hole walk + bridge back + outer[bestIdx+1..end]
+    const result: Point[] = [];
+    for (let i = 0; i <= bestIdx; i++) result.push(outer[i]);
+    for (let i = 0; i < hole.length; i++) result.push(hole[(hIdx + i) % hole.length]);
+    // Bridge return — tiny offset to avoid degenerate zero-length edges in ear-clipping
+    result.push({ x: hole[hIdx].x, y: hole[hIdx].y + 0.01 });
+    result.push({ x: outer[bestIdx].x + 0.01, y: outer[bestIdx].y });
+    for (let i = bestIdx + 1; i < outer.length; i++) result.push(outer[i]);
+
+    return result;
   }
 
   private findRoot(node: SVGNode): SVGNode | null {
