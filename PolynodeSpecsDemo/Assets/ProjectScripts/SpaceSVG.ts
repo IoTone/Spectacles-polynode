@@ -991,6 +991,13 @@ function parseViewBox(s: string | null): ViewBox | null {
   return { minX: parts[0], minY: parts[1], width: parts[2], height: parts[3] };
 }
 
+// ─── Tag Classification ─────────────────────────────
+
+// Tags that are valid containers (process children, produce no own geometry)
+const SVG_CONTAINER_TAGS = new Set(['svg', 'g', 'a', 'symbol', 'switch']);
+// Tags that are metadata/non-visual (safe to ignore silently)
+const SVG_METADATA_TAGS = new Set(['title', 'desc', 'metadata']);
+
 // ─── Mesh Backend ────────────────────────────────────
 
 interface MeshGroup {
@@ -1045,6 +1052,8 @@ class SpaceSVGMeshBackend {
             clone.setAttribute('transform', `translate(${useX},${useY}) ${existing}`);
           }
           this.processNode(clone, groups, style, vbX, vbY, scale, worldWidth, worldHeight);
+        } else {
+          print(`[SpaceSVG] Error: <use> target "${href}" not found in document`);
         }
       }
       return;
@@ -1057,9 +1066,15 @@ class SpaceSVGMeshBackend {
       if (d) {
         const cmds = this.pathParser.parse(d);
         subpaths = this.tessellator.tessellate(cmds);
+      } else {
+        print(`[SpaceSVG] Warning: <path> element has no 'd' attribute`);
       }
     } else {
       subpaths = shapeToPoints(node);
+      if (!subpaths && !SVG_CONTAINER_TAGS.has(node.tagName) && !SVG_METADATA_TAGS.has(node.tagName)) {
+        const id = node.getAttribute('id');
+        print(`[SpaceSVG] Warning: unhandled SVG element <${node.tagName}>${id ? ` id="${id}"` : ''}`);
+      }
     }
 
     if (subpaths && subpaths.length > 0) {
@@ -1089,7 +1104,10 @@ class SpaceSVGMeshBackend {
           if (poly.length < 3) continue;
 
           const triIndices = this.triangulator.triangulate(poly);
-          if (triIndices.length === 0) continue;
+          if (triIndices.length === 0) {
+            print(`[SpaceSVG] Warning: fill triangulation failed for <${node.tagName}> (${poly.length} points)`);
+            continue;
+          }
 
           const verts: number[] = [];
           for (const p of poly) {
