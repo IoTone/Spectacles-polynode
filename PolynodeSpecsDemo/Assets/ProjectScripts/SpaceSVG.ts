@@ -454,7 +454,7 @@ interface Point {
 }
 
 class SVGPathTessellator {
-  private curveSegments: number = 16;
+  private curveSegments: number = 8;
 
   tessellate(commands: PathCommand[]): Point[][] {
     const subpaths: Point[][] = [];

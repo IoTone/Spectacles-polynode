@@ -632,9 +632,8 @@ function buildLatexCountdownSVG(value: number): string {
     valueUses += `            <use xlink:href="#MJMAIN-${hex}" xmlns:xlink="http://www.w3.org/1999/xlink" x="${x}" y="0" />\n`;
   }
 
-  const topRowWidth = rhsX + 500;
-  const bottomRowWidth = rhsX + digits.length * digitAdvance;
-  const totalWidth = Math.max(topRowWidth, bottomRowWidth);
+  // Fixed width — use widest case (value=10, 2 digits) so layout doesn't shift
+  const totalWidth = rhsX + 2 * digitAdvance;
 
   const vbMinY = -750;
   const vbHeight = mathRowGap + 800;
@@ -744,9 +743,12 @@ export default class SpaceSVGDemo extends BaseScriptComponent {
   private meshObjects: SceneObject[] = [];
   private currentDemo: number = 0;
   private timer: number = 0;
-  private lastSecond: number = -1;
+  private animTimer: number = 0;
   private isAnimatedDemo: boolean = false;
   private countdownValue: number = 10;
+  private countdownDone: boolean = false;
+  private countdownFrames: SceneObject[][] = [];
+  private currentCountdownFrame: number = -1;
   private labelText: Text | null = null;
   private instructionText: Text | null = null;
   private instructionObj: SceneObject | null = null;
@@ -765,14 +767,14 @@ export default class SpaceSVGDemo extends BaseScriptComponent {
     this.setupNavigation();
 
     this.createEvent('UpdateEvent').bind((ev: UpdateEvent) => {
-      this.timer += ev.getDeltaTime();
+      const dt = ev.getDeltaTime();
+      this.timer += dt;
 
-      // Handle animated demos (clock updates every second)
+      // Handle animated demos — tick once per second via elapsed time
       if (this.isAnimatedDemo) {
-        const now = new Date();
-        const sec = now.getSeconds();
-        if (sec !== this.lastSecond) {
-          this.lastSecond = sec;
+        this.animTimer += dt;
+        if (this.animTimer >= 1.0) {
+          this.animTimer -= 1.0;
           this.renderAnimatedFrame();
         }
       }
@@ -794,10 +796,13 @@ export default class SpaceSVGDemo extends BaseScriptComponent {
     this.isAnimatedDemo = !!demo.animated;
 
     if (demo.animated) {
-      this.lastSecond = -1; // force immediate render
+      this.animTimer = 0;
       if (demo.name === 'SVG LATEX2') {
         this.countdownValue = 10;
+        this.countdownDone = false;
+        this.showCountdownFrame(this.countdownValue);
         this.showInstruction(this.countdownValue);
+        return;
       }
       this.renderAnimatedFrame();
     } else {
@@ -812,19 +817,24 @@ export default class SpaceSVGDemo extends BaseScriptComponent {
 
   private renderAnimatedFrame(): void {
     const demo = DEMOS[this.currentDemo];
-    this.clearMeshes();
 
     if (demo.name === 'Analog Clock') {
       this.hideInstruction();
+      this.clearMeshes();
       const now = new Date();
       const svg = buildClockSVG(now.getHours(), now.getMinutes(), now.getSeconds());
       this.renderSVG(svg, 'Clock');
     } else if (demo.name === 'SVG LATEX2') {
-      this.showInstruction(this.countdownValue);
-      const svg = buildLatexCountdownSVG(this.countdownValue);
-      this.renderSVG(svg, `LATEX2 (a=${this.countdownValue})`);
+      if (this.countdownDone) return;
+
       if (this.countdownValue > 0) {
         this.countdownValue--;
+        this.showCountdownFrame(this.countdownValue);
+        this.showInstruction(this.countdownValue);
+      } else {
+        this.countdownDone = true;
+        this.isAnimatedDemo = false;
+        print('[SpaceSVGDemo] LATEX2 countdown complete');
       }
     }
   }
@@ -854,6 +864,62 @@ export default class SpaceSVGDemo extends BaseScriptComponent {
     }
   }
 
+  // ─── Lazy Countdown Frames (built one per tick) ─────
+
+  // Build a single frame on demand and cache it. Returns the frame's scene objects.
+  private buildCountdownFrame(value: number): SceneObject[] {
+    const frameIdx = 10 - value;
+    // Return cached frame if already built
+    if (this.countdownFrames[frameIdx]) return this.countdownFrames[frameIdx];
+
+    try {
+      const svg = buildLatexCountdownSVG(value);
+      const tree = this.parser.parse(svg);
+      const groups = this.backend.buildMeshes(tree, this.worldWidth, this.worldHeight);
+      const frameObjects: SceneObject[] = [];
+      for (let i = 0; i < groups.length; i++) {
+        const obj = this.buildMeshObject(groups[i], i);
+        if (obj) {
+          obj.enabled = false;
+          frameObjects.push(obj);
+        }
+      }
+      this.countdownFrames[frameIdx] = frameObjects;
+      return frameObjects;
+    } catch (e: any) {
+      print(`[SpaceSVGDemo] Error building countdown frame ${value}: ${e.message || e}`);
+      this.countdownFrames[frameIdx] = [];
+      return [];
+    }
+  }
+
+  private showCountdownFrame(value: number): void {
+    const frameIdx = 10 - value;
+
+    // Hide previous frame
+    if (this.currentCountdownFrame >= 0 && this.countdownFrames[this.currentCountdownFrame]) {
+      for (const obj of this.countdownFrames[this.currentCountdownFrame]) {
+        obj.enabled = false;
+      }
+    }
+
+    // Build (if needed) and show new frame
+    const objects = this.buildCountdownFrame(value);
+    for (const obj of objects) {
+      obj.enabled = true;
+    }
+    this.currentCountdownFrame = frameIdx;
+  }
+
+  private clearCountdownFrames(): void {
+    for (const frame of this.countdownFrames) {
+      if (!frame) continue;
+      for (const obj of frame) obj.destroy();
+    }
+    this.countdownFrames = [];
+    this.currentCountdownFrame = -1;
+  }
+
   private renderSVG(svg: string, label: string): void {
     try {
       const tree = this.parser.parse(svg);
@@ -868,7 +934,7 @@ export default class SpaceSVGDemo extends BaseScriptComponent {
     }
   }
 
-  private createMeshFromGroup(group: { vertices: number[]; indices: number[]; color: number[] }, index: number): void {
+  private buildMeshObject(group: { vertices: number[]; indices: number[]; color: number[] }, index: number): SceneObject | null {
     const builder = new MeshBuilder([
       { name: 'position', components: 3 },
     ]);
@@ -880,7 +946,7 @@ export default class SpaceSVGDemo extends BaseScriptComponent {
 
     if (!builder.isValid()) {
       print(`[SpaceSVGDemo] Warning: invalid mesh group ${index}`);
-      return;
+      return null;
     }
 
     builder.updateMesh();
@@ -888,20 +954,23 @@ export default class SpaceSVGDemo extends BaseScriptComponent {
 
     const obj = global.scene.createSceneObject(`SVGDemo_${index}`);
     obj.setParent(this.getSceneObject());
-    // Offset each layer slightly toward the camera (positive Z) to prevent z-fighting
     obj.getTransform().setLocalPosition(new vec3(0, 0, index * 0.01));
 
     const visual = obj.createComponent('Component.RenderMeshVisual') as RenderMeshVisual;
     visual.mesh = mesh;
     visual.mainMaterial = this.material;
 
-    // Per-instance color override
     const overrides = visual.mainPassOverrides as any;
     overrides.baseColor = new vec4(
       group.color[0], group.color[1], group.color[2], group.color[3]
     );
 
-    this.meshObjects.push(obj);
+    return obj;
+  }
+
+  private createMeshFromGroup(group: { vertices: number[]; indices: number[]; color: number[] }, index: number): void {
+    const obj = this.buildMeshObject(group, index);
+    if (obj) this.meshObjects.push(obj);
   }
 
   // ─── Navigation UI ──────────────────────────────────
@@ -921,7 +990,7 @@ export default class SpaceSVGDemo extends BaseScriptComponent {
     const prevObj = this.buttonPrefab.instantiate(navRoot);
     prevObj.name = 'PrevButton';
     prevObj.getTransform().setLocalPosition(new vec3(-8, 0, 0));
-    prevObj.getTransform().setLocalScale(new vec3(0.5, 0.5, 0.5));
+    prevObj.getTransform().setLocalScale(new vec3(1.0, 1.0, 1.0));
     this.navObjects.push(prevObj);
     this.setButtonLabel(prevObj, '\u25C0');
     this.hookButtonEvent(prevObj, () => this.navigateDemo(-1));
@@ -940,7 +1009,7 @@ export default class SpaceSVGDemo extends BaseScriptComponent {
     const nextObj = this.buttonPrefab.instantiate(navRoot);
     nextObj.name = 'NextButton';
     nextObj.getTransform().setLocalPosition(new vec3(8, 0, 0));
-    nextObj.getTransform().setLocalScale(new vec3(0.5, 0.5, 0.5));
+    nextObj.getTransform().setLocalScale(new vec3(1.0, 1.0, 1.0));
     this.navObjects.push(nextObj);
     this.setButtonLabel(nextObj, '\u25B6');
     this.hookButtonEvent(nextObj, () => this.navigateDemo(1));
@@ -1054,5 +1123,6 @@ export default class SpaceSVGDemo extends BaseScriptComponent {
       obj.destroy();
     }
     this.meshObjects = [];
+    this.clearCountdownFrames();
   }
 }

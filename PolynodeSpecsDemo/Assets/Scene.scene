@@ -3338,7 +3338,7 @@
   ShadowDensity: 1.000000
   Materials:
     - !<reference> 175be50f-f48c-409b-9d56-b94163a7e8c6
-  Text: Polynode v0.4
+  Text: Polynode v0.5
   Editable: false
   ShowEditingPreview: true
   TouchHandler: !<reference> 00000000-0000-0000-0000-000000000000
