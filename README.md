@@ -6,6 +6,8 @@ These are the currently supported libraries:
 
 - Spacecanvas
 - SpaceSVG
+- Typed Emitter Utility Class
+- Interval and Timeout (like a JS style Interval and Timeout!)
 - (future) Spacedom
 
 ![Image](https://github.com/user-attachments/assets/d5256b9a-dce3-4d49-9752-9877cfe56be6)
@@ -117,3 +119,17 @@ SVG work was 100% done in claude api with a cave human drooling over the keyboar
 Special thanks to the product team for dropping this little detail about how to inject data into the WebView : https://www.reddit.com/r/Spectacles/comments/1rjsa2x/comment/o8hzrrm/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button .  This gives us offline capability to render data from within a Spectacles Lens Script API.
 
 The SVG inspiration was in looking at what a bunch of the HTML5 tooling had in common: SVG output is just nice because dumb machines understand XML and can pars and generate XML like O2/CO2.  Because SVG is compact and animates well, it is a natural choice in HTML5 output for things like charts, graphs, and simple visualizations.  But rather than try to ram this down onto the Spacecanvas, we thought it would be better to map it into Spatial and use Meshes to map to the shaps we need.  It's kludgy but someday we'll get this support natively or the Snap team will add something that takes the good ideas and makes them super efficient and asthetically pleasing.
+
+### Event Emitter
+
+This is the good old fashioned event emitter from node.js https://github.com/nodejs/node/blob/v20.19.2/lib/events.js.  For a working example of use, see: https://github.com/IoTone/matrix-websocket-bridge-ar-xr/blob/main/MatrixEyeLensComm/Assets/LocalScripts/libmatrix-ws-bridge/MatrixEyeLib.ts
+
+We don't provide an example in this project using it at the moment.  However, just add this to your assets, and import in all scripts that need it. 
+
+### Intervals
+
+Ahh remember the good old setInterval and setTimeout from JS.  Yes, there's something like it in Lens apis, but not exactly.  This is close.
+
+### SpaceDOM
+
+Think of this as a tool for offscreen rendering if you have to deal with some DOM manipulation. It might be useful for porting.  We don't provide an example using it.

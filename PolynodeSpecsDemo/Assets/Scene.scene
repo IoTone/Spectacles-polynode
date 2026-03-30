@@ -370,6 +370,22 @@
     - !<own> 9780eafa-ac9d-4a64-9250-51f3a2d5ce94
   Components:
     []
+- !<ScriptComponent/06c0d91d-cb93-403c-bbed-bb962dac1f40>
+  PrefabRemaps:
+    []
+  Name: SpaceDOMTestSuite
+  Enabled: true
+  ScriptAsset: !<reference> 43a40932-e30b-4677-8796-1dc4e5bdbf01
+  ScriptInputsDefault:
+    {}
+  ScriptTypesDefault:
+    {}
+  ScriptInputs:
+    "":
+      {}
+  ScriptTypes:
+    "":
+      {}
 - !<SceneObject/07683583-5bf2-4ba3-b9e9-b34561c8f6b7>
   PrefabRemaps:
     []
@@ -1188,6 +1204,21 @@
     []
   Components:
     - !<own> de6f8e46-0169-4082-ac65-96bb36ee1c56
+- !<SceneObject/33119b55-5b27-4905-80e5-eeac5294d8d1>
+  PrefabRemaps:
+    []
+  Name: SpaceDOMTestSuite
+  Enabled: true
+  Layers: 1
+  LocalTransform: !<TransformEntity>
+    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
+    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
+    HasSegmentScaleCompensation: false
+  Children:
+    []
+  Components:
+    - !<own> 06c0d91d-cb93-403c-bbed-bb962dac1f40
 - !<SceneObject/341bd60f-19ea-4dae-ac97-bf3687a4bd92>
   PrefabRemaps:
     []
@@ -1660,13 +1691,13 @@
     Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
     HasSegmentScaleCompensation: false
   Children:
-    - !<own> 74c8e638-fc2a-4665-8871-c8d939394753
     - !<own> 36ec223d-427c-4602-9f92-e880e3d71b8a
     - !<own> 47396be1-881f-44ea-82d1-160299162b59
     - !<own> 951d452a-03cb-4557-8bc5-26757f062639
     - !<own> 6e8a78ca-b6cc-480d-8c8c-45585c9bdcd3
     - !<own> 3f5b0742-276f-4339-a3af-ad09c64088e2
     - !<own> 6197043d-36e5-4cf6-af1a-28010ac91903
+    - !<own> 33119b55-5b27-4905-80e5-eeac5294d8d1
   Components:
     - !<own> 362ec872-2cc2-45ae-8db0-449521938eec
 - !<SceneObject/47396be1-881f-44ea-82d1-160299162b59>
@@ -2723,21 +2754,6 @@
     - !<own> ee27d7f1-2dcb-4b1f-b956-668d4e5f127a
   Components:
     []
-- !<SceneObject/74c8e638-fc2a-4665-8871-c8d939394753>
-  PrefabRemaps:
-    []
-  Name: Spacecanvas
-  Enabled: true
-  Layers: 1
-  LocalTransform: !<TransformEntity>
-    Position: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Rotation: {x: 0.000000, y: 0.000000, z: 0.000000}
-    Scale: {x: 1.000000, y: 1.000000, z: 1.000000}
-    HasSegmentScaleCompensation: false
-  Children:
-    []
-  Components:
-    - !<own> bf468a0f-ffb1-46c0-962b-0023358068ab
 - !<SceneObject/77155ced-70ec-46cf-ae31-59be58aa6cb5>
   PrefabRemaps:
     []
@@ -3777,22 +3793,6 @@
   Components:
     - !<own> c9a24ff3-20fe-45d1-9a5e-183fc2d2bfe6
     - !<own> 51fddc56-2d85-4de2-b16b-898b2ab7b141
-- !<ScriptComponent/bf468a0f-ffb1-46c0-962b-0023358068ab>
-  PrefabRemaps:
-    []
-  Name: Spacecanvas
-  Enabled: true
-  ScriptAsset: !<reference> 3e3cac1f-a5ab-4dcb-8508-b8da37548697
-  ScriptInputsDefault:
-    {}
-  ScriptTypesDefault:
-    {}
-  ScriptInputs:
-    "":
-      {}
-  ScriptTypes:
-    "":
-      {}
 - !<SceneObject/c0162091-ed10-4009-a904-aaac2e338232>
   PrefabRemaps:
     []
