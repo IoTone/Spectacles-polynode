@@ -132,4 +132,4 @@ Ahh remember the good old setInterval and setTimeout from JS.  Yes, there's some
 
 ### SpaceDOM
 
-Think of this as a tool for offscreen rendering if you have to deal with some DOM manipulation. It might be useful for porting.  We don't provide an example using it.
+Think of this as a tool for offscreen rendering if you have to deal with some DOM manipulation. It might be useful for porting.  We provide a test suite to show how it works or that it works.  This will get used by some other projects later on related to Latex parsing probably.
