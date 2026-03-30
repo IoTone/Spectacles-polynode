@@ -384,16 +384,12 @@ export default class SpaceCanvasDemo extends BaseScriptComponent {
       ctx.fill();
     }
 
-    // Title text (redrawn each frame with animated glow)
-    ctx.shadowColor = 'rgba(0,200,255,' + (0.5 + Math.sin(t * 1.5) * 0.3).toFixed(2) + ')';
-    ctx.shadowBlur = 20 + Math.sin(t * 2) * 10;
+    // Title text (static glow — no per-frame shadowBlur to reduce GPU load)
     ctx.font = 'bold 42px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
     ctx.fillText('SpaceCanvas', cx, cy - 10);
-    ctx.shadowBlur = 0;
-    ctx.shadowColor = 'transparent';
 
     // Subtitle
     ctx.font = '14px sans-serif';
@@ -407,11 +403,11 @@ export default class SpaceCanvasDemo extends BaseScriptComponent {
     ctx.fillText('frame ' + frame + '  ' + Math.round(fps) + ' fps', ax + 6, ay + ah - 6);
 
     ctx.restore();
-    requestAnimationFrame(drawFrame);
+    setTimeout(drawFrame, 40);
   }
 
   // Start animation after a short delay so static content renders first
-  setTimeout(function() { requestAnimationFrame(drawFrame); }, 100);
+  setTimeout(drawFrame, 100);
 })();
 `);
 
