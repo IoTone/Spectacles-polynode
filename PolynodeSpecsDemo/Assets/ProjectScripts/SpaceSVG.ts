@@ -657,6 +657,112 @@ class SVGPathTessellator {
 // ─── Triangulator (Ear Clipping) ─────────────────────
 
 class SVGTriangulator {
+  // Triangulate a polygon that may be self-intersecting (e.g., a 5-point
+  // pentagram drawn as a single subpath). Detects intersections, swaps the
+  // edge connections at each one to untangle the polygon into one or more
+  // simple sub-polygons, then ear-clips each. Returns expanded vertex list
+  // (original + intersection points) and indices into it.
+  triangulateFill(polygon: Point[]): { vertices: Point[]; indices: number[] } {
+    if (polygon.length < 3) return { vertices: polygon, indices: [] };
+
+    const inters = this.findSelfIntersections(polygon);
+    if (inters.length === 0) {
+      return { vertices: polygon, indices: this.triangulate(polygon) };
+    }
+
+    // Build expanded sequence: each original vertex, then any intersections
+    // along its outgoing edge (sorted by parameter). Track each intersection's
+    // two visit positions so we can swap them.
+    type Entry = { pt: Point; globalIdx: number; interIdx: number };
+    const entries: Entry[] = [];
+    const visits: Map<number, number[]> = new Map();
+    const allVerts: Point[] = [...polygon];
+    const interGlobalIdx: number[] = [];
+    for (let i = 0; i < inters.length; i++) {
+      interGlobalIdx.push(allVerts.length);
+      allVerts.push(inters[i].pt);
+    }
+
+    for (let e = 0; e < polygon.length; e++) {
+      entries.push({ pt: polygon[e], globalIdx: e, interIdx: -1 });
+      const onEdge = inters
+        .map((it, idx) => ({ idx, t: it.edgeA === e ? it.tA : (it.edgeB === e ? it.tB : -1) }))
+        .filter(x => x.t >= 0)
+        .sort((a, b) => a.t - b.t);
+      for (const oe of onEdge) {
+        const pos = entries.length;
+        entries.push({ pt: inters[oe.idx].pt, globalIdx: interGlobalIdx[oe.idx], interIdx: oe.idx });
+        if (!visits.has(oe.idx)) visits.set(oe.idx, []);
+        visits.get(oe.idx)!.push(pos);
+      }
+    }
+
+    // next[i] = position to walk to from position i; default = sequential cycle
+    const total = entries.length;
+    const next: number[] = new Array(total);
+    for (let i = 0; i < total; i++) next[i] = (i + 1) % total;
+    // Untangle: at each intersection, swap the outgoing connection of its two visits
+    for (const v of visits.values()) {
+      if (v.length !== 2) continue;
+      const tmp = next[v[0]];
+      next[v[0]] = next[v[1]];
+      next[v[1]] = tmp;
+    }
+
+    // Walk all cycles. Each cycle becomes a simple sub-polygon to ear-clip.
+    const visited = new Array<boolean>(total).fill(false);
+    const indices: number[] = [];
+    for (let s = 0; s < total; s++) {
+      if (visited[s]) continue;
+      const cycle: number[] = [];
+      const cyclePts: Point[] = [];
+      let cur = s;
+      let safety = total + 1;
+      while (!visited[cur] && safety-- > 0) {
+        visited[cur] = true;
+        cycle.push(entries[cur].globalIdx);
+        cyclePts.push(entries[cur].pt);
+        cur = next[cur];
+      }
+      if (cyclePts.length < 3) continue;
+      const subIdx = this.triangulate(cyclePts);
+      for (const i of subIdx) indices.push(cycle[i]);
+    }
+
+    return { vertices: allVerts, indices };
+  }
+
+  // Return the list of self-intersections between non-adjacent edges of the
+  // polygon (treated as closed). Each entry has the two edge indices, the
+  // intersection point, and the parameter on each edge.
+  private findSelfIntersections(poly: Point[]): Array<{ edgeA: number; edgeB: number; pt: Point; tA: number; tB: number }> {
+    const out: Array<{ edgeA: number; edgeB: number; pt: Point; tA: number; tB: number }> = [];
+    const n = poly.length;
+    const eps = 1e-6;
+    for (let i = 0; i < n; i++) {
+      const a1 = poly[i];
+      const a2 = poly[(i + 1) % n];
+      for (let j = i + 2; j < n; j++) {
+        if (i === 0 && j === n - 1) continue; // adjacent (wrap)
+        const b1 = poly[j];
+        const b2 = poly[(j + 1) % n];
+        const dx1 = a2.x - a1.x, dy1 = a2.y - a1.y;
+        const dx2 = b2.x - b1.x, dy2 = b2.y - b1.y;
+        const denom = dx1 * dy2 - dy1 * dx2;
+        if (Math.abs(denom) < 1e-9) continue;
+        const tA = ((b1.x - a1.x) * dy2 - (b1.y - a1.y) * dx2) / denom;
+        const tB = ((b1.x - a1.x) * dy1 - (b1.y - a1.y) * dx1) / denom;
+        if (tA <= eps || tA >= 1 - eps || tB <= eps || tB >= 1 - eps) continue;
+        out.push({
+          edgeA: i, edgeB: j,
+          pt: { x: a1.x + dx1 * tA, y: a1.y + dy1 * tA },
+          tA, tB,
+        });
+      }
+    }
+    return out;
+  }
+
   triangulate(polygon: Point[]): number[] {
     const n = polygon.length;
     if (n < 3) return [];
@@ -701,87 +807,100 @@ class SVGTriangulator {
 
     if (remaining.length === 3) {
       indices.push(remaining[0], remaining[1], remaining[2]);
+    } else if (remaining.length > 3) {
+      // Ear-clipping deadlocked. Fall back to a triangle fan from the first
+      // remaining vertex so the polygon at least gets covered. Some triangles
+      // may overlap or extend slightly outside the polygon, but a fan over a
+      // ~near-convex remaining region is usually visually acceptable and
+      // strictly better than leaving a hole.
+      print(`[SpaceSVG] Ear-clipping deadlocked with ${remaining.length} of ${polygon.length} vertices unclipped — falling back to fan triangulation`);
+      const a = remaining[0];
+      for (let k = 1; k < remaining.length - 1; k++) {
+        indices.push(a, remaining[k], remaining[k + 1]);
+      }
     }
 
     return indices;
   }
 
-  // Generates stroke geometry directly as triangle quads — no ear-clipping needed.
-  // Returns { vertices, indices } ready for mesh building.
-  // Handles both open and closed paths correctly.
+  // Generates stroke geometry as one rectangle quad per edge plus a bevel
+  // triangle per corner. Per-edge normals avoid the pinch/bowtie artifacts
+  // that the averaged-normal-per-point approach produces at sharp turns.
   triangulateStroke(points: Point[], width: number): { vertices: Point[]; indices: number[] } {
     if (points.length < 2) return { vertices: [], indices: [] };
     const hw = width / 2;
 
-    // Detect closed path (first ~= last point)
     const closed = points.length > 2 &&
       Math.abs(points[0].x - points[points.length - 1].x) < 0.001 &&
       Math.abs(points[0].y - points[points.length - 1].y) < 0.001;
 
-    // For closed paths, remove the duplicate closing point
     const pts = closed ? points.slice(0, -1) : points;
     const n = pts.length;
+    if (n < 2) return { vertices: [], indices: [] };
 
-    const left: Point[] = [];
-    const right: Point[] = [];
-
-    for (let i = 0; i < n; i++) {
-      const prev = closed ? (i - 1 + n) % n : Math.max(0, i - 1);
-      const next = closed ? (i + 1) % n : Math.min(n - 1, i + 1);
-
-      let nx: number, ny: number;
-      if (prev === i) {
-        // First point of open path
-        const dx = pts[next].x - pts[i].x;
-        const dy = pts[next].y - pts[i].y;
-        const len = Math.sqrt(dx * dx + dy * dy) || 1;
-        nx = -dy / len;
-        ny = dx / len;
-      } else if (next === i) {
-        // Last point of open path
-        const dx = pts[i].x - pts[prev].x;
-        const dy = pts[i].y - pts[prev].y;
-        const len = Math.sqrt(dx * dx + dy * dy) || 1;
-        nx = -dy / len;
-        ny = dx / len;
+    const edgeCount = closed ? n : n - 1;
+    const normals: { nx: number; ny: number }[] = [];
+    for (let e = 0; e < edgeCount; e++) {
+      const dx = pts[(e + 1) % n].x - pts[e].x;
+      const dy = pts[(e + 1) % n].y - pts[e].y;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len < 0.0001) {
+        // Degenerate edge — reuse previous normal so corner math stays sane
+        normals.push(normals.length > 0 ? normals[normals.length - 1] : { nx: 0, ny: 1 });
       } else {
-        // Interior point or closed path — average adjacent normals
-        const dx1 = pts[i].x - pts[prev].x;
-        const dy1 = pts[i].y - pts[prev].y;
-        const len1 = Math.sqrt(dx1 * dx1 + dy1 * dy1) || 1;
-        const dx2 = pts[next].x - pts[i].x;
-        const dy2 = pts[next].y - pts[i].y;
-        const len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2) || 1;
-        nx = -(dy1 / len1 + dy2 / len2) / 2;
-        ny = (dx1 / len1 + dx2 / len2) / 2;
-        const nlen = Math.sqrt(nx * nx + ny * ny) || 1;
-        nx /= nlen;
-        ny /= nlen;
+        normals.push({ nx: -dy / len, ny: dx / len });
       }
-
-      left.push({ x: pts[i].x + nx * hw, y: pts[i].y + ny * hw });
-      right.push({ x: pts[i].x - nx * hw, y: pts[i].y - ny * hw });
     }
 
-    // Build vertices: left[0], right[0], left[1], right[1], ...
     const vertices: Point[] = [];
-    for (let i = 0; i < n; i++) {
-      vertices.push(left[i]);
-      vertices.push(right[i]);
+    const indices: number[] = [];
+
+    // One rectangle quad per edge — CCW order matches existing fill convention
+    for (let e = 0; e < edgeCount; e++) {
+      const i = e;
+      const j = (e + 1) % n;
+      const ne = normals[e];
+      const baseIdx = vertices.length;
+      vertices.push(
+        { x: pts[i].x + ne.nx * hw, y: pts[i].y + ne.ny * hw }, // leftStart
+        { x: pts[i].x - ne.nx * hw, y: pts[i].y - ne.ny * hw }, // rightStart
+        { x: pts[j].x + ne.nx * hw, y: pts[j].y + ne.ny * hw }, // leftEnd
+        { x: pts[j].x - ne.nx * hw, y: pts[j].y - ne.ny * hw }, // rightEnd
+      );
+      indices.push(baseIdx, baseIdx + 1, baseIdx + 2);
+      indices.push(baseIdx + 1, baseIdx + 3, baseIdx + 2);
     }
 
-    // Build indices: quads between consecutive pairs
-    const indices: number[] = [];
-    const segCount = closed ? n : n - 1;
-    for (let i = 0; i < segCount; i++) {
-      const j = (i + 1) % n;
-      const i0 = i * 2;      // left[i]
-      const i1 = i * 2 + 1;  // right[i]
-      const i2 = j * 2;      // left[j]
-      const i3 = j * 2 + 1;  // right[j]
-      // Two triangles per quad (CCW winding to match fill convention)
-      indices.push(i0, i1, i2);
-      indices.push(i1, i3, i2);
+    // Bevel triangle at each corner, on the outer side (where adjacent edges'
+    // offset vertices spread apart). Inner side gets a small overlap which
+    // renders fine since strokes are opaque single-color.
+    const cornerCount = closed ? edgeCount : edgeCount - 1;
+    for (let c = 0; c < cornerCount; c++) {
+      const e1 = c;
+      const e2 = (c + 1) % edgeCount;
+      const cornerPt = pts[(c + 1) % n];
+      const n1 = normals[e1];
+      const n2 = normals[e2];
+      const cross = n1.nx * n2.ny - n1.ny * n2.nx;
+      if (Math.abs(cross) < 0.001) continue; // collinear — no bevel needed
+
+      const baseIdx = vertices.length;
+      if (cross > 0) {
+        // Outer side is "left": fill gap between leftEnd(e1), leftStart(e2), corner
+        vertices.push(
+          { x: cornerPt.x + n1.nx * hw, y: cornerPt.y + n1.ny * hw },
+          { x: cornerPt.x + n2.nx * hw, y: cornerPt.y + n2.ny * hw },
+          { x: cornerPt.x, y: cornerPt.y },
+        );
+      } else {
+        // Outer side is "right": same triangle on the other side, opposite winding
+        vertices.push(
+          { x: cornerPt.x - n1.nx * hw, y: cornerPt.y - n1.ny * hw },
+          { x: cornerPt.x, y: cornerPt.y },
+          { x: cornerPt.x - n2.nx * hw, y: cornerPt.y - n2.ny * hw },
+        );
+      }
+      indices.push(baseIdx, baseIdx + 1, baseIdx + 2);
     }
 
     return { vertices, indices };
@@ -797,16 +916,23 @@ class SVGTriangulator {
   }
 
   private isConvex(a: Point, b: Point, c: Point): boolean {
-    return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x) > 0;
+    // Tolerate near-collinear corners (cross ≈ 0) as convex. Strict > 0 lets
+    // floating-point noise from dense curve tessellation classify a perfectly-
+    // valid ear as concave, which can deadlock the ear-clipping loop.
+    return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x) > -1e-9;
   }
 
   private pointInTriangle(p: Point, a: Point, b: Point, c: Point): boolean {
+    // Strict-interior test: a vertex sitting exactly on (or numerically next
+    // to) one of the ear triangle's edges shouldn't count as "inside" — it
+    // doesn't actually block the ear, and treating it as a blocker is what
+    // causes complex fills (like the pig body at curveSegments=8) to leave
+    // black holes.
+    const eps = 1e-9;
     const d1 = this.cross(a, b, p);
     const d2 = this.cross(b, c, p);
     const d3 = this.cross(c, a, p);
-    const hasNeg = d1 < 0 || d2 < 0 || d3 < 0;
-    const hasPos = d1 > 0 || d2 > 0 || d3 > 0;
-    return !(hasNeg && hasPos);
+    return (d1 > eps && d2 > eps && d3 > eps) || (d1 < -eps && d2 < -eps && d3 < -eps);
   }
 
   private cross(a: Point, b: Point, p: Point): number {
@@ -1011,8 +1137,10 @@ class SpaceSVGMeshBackend {
   private tessellator: SVGPathTessellator = new SVGPathTessellator();
   private triangulator: SVGTriangulator = new SVGTriangulator();
   private styleResolver: SVGStyleResolver = new SVGStyleResolver();
+  private strokeScale: number = 1;
+  private skipGroupIds: Set<string> = new Set();
 
-  buildMeshes(root: SVGNode, worldWidth: number, worldHeight: number): MeshGroup[] {
+  buildMeshes(root: SVGNode, worldWidth: number, worldHeight: number, options?: { strokeScale?: number; skipGroupIds?: string[] }): MeshGroup[] {
     const viewBox = parseViewBox(root.getAttribute('viewBox'));
     const svgW = viewBox?.width ?? parseFloat(root.getAttribute('width') || '100');
     const svgH = viewBox?.height ?? parseFloat(root.getAttribute('height') || '100');
@@ -1022,6 +1150,9 @@ class SpaceSVGMeshBackend {
     const scaleX = worldWidth / svgW;
     const scaleY = worldHeight / svgH;
     const scale = Math.min(scaleX, scaleY);
+
+    this.strokeScale = options?.strokeScale ?? 1;
+    this.skipGroupIds = new Set(options?.skipGroupIds ?? []);
 
     const groups: MeshGroup[] = [];
     this.processNode(root, groups, { ...DEFAULT_STYLE }, vbX, vbY, scale, worldWidth, worldHeight);
@@ -1037,6 +1168,14 @@ class SpaceSVGMeshBackend {
 
     if (style.display === 'none' || style.visibility === 'hidden') return;
     if (node.tagName === 'defs') return;
+
+    // Skip groups (and their entire subtree) whose id is in the skip set —
+    // useful to drop 3D-export "MeshIntersection" / "Crease" interior paths
+    // that aren't part of the artistic outline.
+    if (node.tagName === 'g' && this.skipGroupIds.size > 0) {
+      const gid = node.getAttribute('id');
+      if (gid && this.skipGroupIds.has(gid)) return;
+    }
 
     if (node.tagName === 'use') {
       const href = node.getAttribute('href') || node.getAttribute('xlink:href');
@@ -1097,14 +1236,18 @@ class SpaceSVGMeshBackend {
         const mergedVerts: number[] = [];
         const mergedIndices: number[] = [];
         for (const poly of polygons) {
-          const triIndices = this.triangulator.triangulate(poly);
+          // triangulateFill detects self-intersection (e.g., pentagrams) and
+          // returns possibly-expanded vertex list with indices into it.
+          const tri = this.triangulator.triangulateFill(poly);
+          const triIndices = tri.indices;
+          const triVerts = tri.vertices;
           if (triIndices.length === 0) {
             print(`[SpaceSVG] Warning: fill triangulation failed for <${node.tagName}> (${poly.length} points)`);
             continue;
           }
 
           const baseVertex = mergedVerts.length / 3;
-          for (const p of poly) {
+          for (const p of triVerts) {
             const wx = (p.x - vbX) * scale - worldWidth / 2;
             const wy = worldHeight / 2 - (p.y - vbY) * scale;
             mergedVerts.push(wx, wy, 0);
@@ -1134,11 +1277,12 @@ class SpaceSVGMeshBackend {
       const strokeColor = parseColor(style.stroke);
       if (strokeColor && style.strokeWidth > 0) {
         strokeColor[3] *= style.opacity * style.strokeOpacity;
+        const effectiveStrokeWidth = style.strokeWidth * this.strokeScale;
         const mergedVerts: number[] = [];
         const mergedIndices: number[] = [];
         for (const sp of subpaths) {
           if (sp.length < 2) continue;
-          const stroke = this.triangulator.triangulateStroke(sp, style.strokeWidth);
+          const stroke = this.triangulator.triangulateStroke(sp, effectiveStrokeWidth);
           if (stroke.vertices.length < 2 || stroke.indices.length < 3) continue;
 
           const baseVertex = mergedVerts.length / 3;

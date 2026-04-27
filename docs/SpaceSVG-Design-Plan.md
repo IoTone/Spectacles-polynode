@@ -49,9 +49,12 @@ Create a minimal test script that:
 ```
 Assets/ProjectScripts/
   SpaceSVG.ts              — Main library (parser, renderer, API)
-  SpaceSVGDemo.ts          — Demo component
+  SpaceSVGDemo.ts          — Demo component (built-in catalog of demos)
+  SpaceSVGImage.ts         — Drop-in component to render an SVG file
   SpaceSVGTestSuite.ts     — Conformance test SVGs
 ```
+
+`SpaceSVGImage.ts` is the lightweight authoring path: attach to a SceneObject, assign a material, and either point it at a Text component holding the SVG XML (works well for pasting in 16KB+ files like mermaid diagrams) or paste inline SVG. It exposes the AR-specific knobs (`strokeScale`, `darkStrokeColor`, `darkStrokeThreshold`, `skipGroupIds`) needed to make arbitrary third-party SVGs render acceptably on Spectacles — see "Real-World SVG Rendering Challenges" below.
 
 ### Internal Components
 
@@ -288,7 +291,13 @@ The native mesh approach follows patterns from official Snap Spectacles samples 
 
 ### Stroke Rendering
 
-Strokes use direct quad triangulation (not ear-clipping) to handle closed paths correctly. Each path segment generates a quad (2 triangles) between left/right offset edges. Closed paths (first == last point) wrap the final quad back to the first vertex pair.
+Strokes use direct quad triangulation (not ear-clipping) to handle closed paths correctly. The current algorithm uses **per-edge normals plus explicit bevel triangles at corners**:
+
+- One rectangle quad per edge (4 vertices: leftStart, rightStart, leftEnd, rightEnd), independently extruded along that edge's perpendicular.
+- One bevel triangle per corner, filling the gap on the outer side where adjacent edges' offset vertices spread apart.
+- ~2× the vertex count vs. the older averaged-normal-per-point approach, but no pinch artifacts at sharp turns and no bowtie quads at near-180° reversals.
+
+The previous algorithm averaged the two adjacent edge normals at each interior vertex. At sharp corners the average vector approached zero, normalized poorly, and produced either pinched (zero-width spikes) or bowtied (self-crossing) quads — invisible at 1-unit stroke width but glaringly visible once stroke width was scaled up for AR readability.
 
 ### Subpath Merging (Draw Call Optimization)
 
@@ -317,6 +326,95 @@ Tags are classified into three sets:
 - **Metadata tags** (`title`, `desc`, `metadata`): No visual output — silent
 - **Everything else**: Logged as warning if not a known shape
 
+## Real-World SVG Rendering Challenges
+
+When rendering arbitrary third-party SVGs on Spectacles (Turkish flag, 3D-exported pig, mermaid diagrams), several issues surface that don't appear in hand-authored demo SVGs. Each is documented here with root cause and the implemented fix.
+
+### 1. AR Additive Display: Black Strokes Are Invisible
+
+**Symptom:** SVG with black outlines on colored fills (e.g., a pig with `stroke="#000000"` interior linework) renders as solid color blobs with no visible outline. The strokes ARE rendering geometrically; they're just emitting no light.
+
+**Root cause:** Spectacles is an *optical see-through* display — it can only *add* light to the world, not subtract it. A pixel set to `(0,0,0,1)` emits nothing, so it shows whatever is behind the display. When that pixel is covered by an opaque-stroke mesh sitting on top of an opaque-fill mesh, depth-testing correctly occludes the fill — but the stroke contributes no visible color, so the user sees the room. Against a colored fill this looks identical to "the fill wasn't covered."
+
+**Fix:** `SpaceSVGImage` exposes `darkStrokeColor` (default white) and `darkStrokeThreshold` (default 0.1). Any stroke color whose max RGB channel is at or below the threshold is remapped before being assigned to the mesh. Pure-white outlines work for fast diagnosis; tonal colors like raspberry `(0.55, 0.15, 0.25, 1)` give a more natural "darker shadow" reading against pink fills. Set `darkStrokeColor.w = 0` to disable the remap when previewing on a normal opaque display.
+
+**General AR rule:** Mid-tone or pastel colors work best on additive displays. Pure white blows out in bright rooms; pure black is invisible. Any artwork that uses dark line work for definition needs this remap.
+
+### 2. Stroke Width Sub-Pixel at Native Scale
+
+**Symptom:** SVGs with a large viewBox (e.g., 735-wide pig, 90000-wide flag) and `stroke-width="1"` render as effectively no stroke at all, even after fixing color.
+
+**Root cause:** Stroke width is in SVG-user-units. With `worldWidth=20` and `viewBox.width=735`, the world scale is `20/735 ≈ 0.027`. A 1-unit stroke becomes 0.027 world units wide — sub-pixel on Spectacles' 1280×1080 per-eye panel at any normal viewing distance.
+
+**Fix:** `strokeScale` Inspector input (default 1.0) multiplies stroke widths in the mesh backend. Recommended starting points:
+- Faithful-to-SVG: 1.0
+- Visible AR outlines: 2–4
+- Heavily stylized: up to ~6
+
+**Caveat:** Values above ~6 cause stroke ribbons to self-overlap at sharp corners on dense paths. The user should tune per-SVG.
+
+### 3. Mesh Layering: Strokes Rendered Behind Fills
+
+**Symptom:** Stroke geometry exists, has correct color, but the rendered output shows only the fill — strokes appear hidden.
+
+**Root cause:** Two interacting issues:
+- The `LegitUnlit` material has `BlendMode: Disabled` (opaque) and `DepthFunction: LessEqual`. With all meshes at z=0, draw order alone determines what's visible.
+- Lens Studio doesn't guarantee SceneObject-creation order maps to draw order without explicit hints.
+
+**Fix:** Each mesh group gets `visual.setRenderOrder(index)` (higher index = drawn later = on top) plus a tiny z-offset (`index * 0.005` world units) to break depth-fighting ties. The z-offset is small enough that successive groups don't visibly hover, but large enough that depth precision keeps strokes layered above fills.
+
+**Caveat:** A SceneObject rotated 180° around Y flips local +z to world -z, inverting the stack. Document this; rotate child meshes individually if needed.
+
+### 4. Stroke Tessellation Spikes at Sharp Corners
+
+**Symptom:** Thin triangle/wedge artifacts protrude from strokes at sharp turns in dense paths. Most visible on 3D-exported SVGs (the pig snout/body junction).
+
+**Root cause (legacy algorithm):** Averaged-normal-per-point stroke tessellation. At sharp turns the averaged normal magnitude approaches zero; after `|| 1` fallback the corner vertex collapses to zero offset, producing pinched / bowtied quads.
+
+**Fix:** Replaced with per-edge-normal tessellation plus explicit bevel triangles (see "Stroke Rendering" above). Each edge gets its own clean rectangle; corners get a single bevel triangle on the outer side.
+
+### 5. Self-Intersecting Fill Polygons (Pentagrams)
+
+**Symptom:** A 5-point star drawn as a single self-intersecting subpath (Turkish flag star) renders as a partial triangulation — "1/2 star plus another shape."
+
+**Root cause:** Ear-clipping requires simple (non-self-intersecting) polygons. Given a pentagram (5 points, 5 edge crossings) it finds some convex tips as "ears" but the inner pentagon region cannot be triangulated correctly because edges cross each other.
+
+**Fix:** `SVGTriangulator.triangulateFill()` runs a self-intersection detector before ear-clipping. If intersections are found:
+1. Compute the intersection points (5 for a pentagram).
+2. Build an *expanded* vertex sequence visiting each original vertex plus each intersection (twice — once per crossing edge), sorted by parameter along the edge.
+3. *Untangle* by swapping the `next[]` connections at each intersection's two visit positions. This converts every "crossing" into a "switch": the boundary jumps to the other line instead of crossing through.
+4. Walk the resulting graph to find all closed cycles. For a pentagram you get two: the outer 10-point star and the inner pentagon — both simple.
+5. Ear-clip each cycle separately, concatenate indices with proper offset into a global vertex array (originals + intersections).
+
+Backwards-compatible: non-self-intersecting polygons skip the entire untangling path.
+
+**Limitation:** This produces correct output for the nonzero fill rule. Even-odd would require winding-count analysis per face — deferred until a real test case appears.
+
+### 6. 3D-Exported SVGs: Interior Crease Paths
+
+**Symptom:** SVGs exported from 3D modelers (Blender, Maya, etc.) include extra interior paths that aren't part of the artistic outline — typically inside `<g id="MeshIntersection">`, `<g id="Crease">`, `<g id="Boundary">`. These represent fold lines where the modeler detected a sharp surface crease. In the original black-on-pink rendering they're hairline accents; in our white-on-pink at strokeScale=2 they overpower the silhouette.
+
+**Fix:** `skipGroupIds` Inspector input — comma-separated list of `<g id="...">` values whose entire subtree is skipped during processing. For 3D-exported SVGs, a good starting set is `MeshIntersection,Crease,Material,Pupils,Boundary` — keeps just the `<Silhouette>` outline.
+
+**Limitation:** Many SVG paths have no `id` attribute. For those, the user must edit the SVG directly to remove specific paths. We could add `skipPathIndices` (skip the Nth path globally) if this becomes common.
+
+### 7. Ear-Clipping Deadlock on Dense Polygons
+
+**Symptom:** Black "hole" appears in the middle of a complex fill (e.g., the pig body's back curve). The fill mesh is partially generated; some vertices weren't triangulated.
+
+**Root cause:** Two precision issues in the ear-clipping inner tests:
+- `isConvex` used strict `> 0`. Curve tessellation at 8 segments produces near-collinear runs where the cross product is near-zero noise. These get classified as concave, so the ear-clipping never picks them.
+- `pointInTriangle` returned true for any vertex on the triangle's boundary (i.e., nearly-collinear with a candidate ear's edge). Such a vertex disqualifies the ear, but it doesn't actually obstruct anything geometrically.
+
+When neither check passes for any remaining vertex, the loop bails out and remaining vertices are left untriangulated → visual hole.
+
+**Fix:**
+- `isConvex` now uses `> -1e-9` (tolerates near-collinear corners).
+- `pointInTriangle` is now a *strict* interior test using `± 1e-9` epsilon.
+- Fan-triangulation fallback: if the loop still deadlocks with `>3` remaining vertices, cover them with a triangle fan from the first remaining vertex and log `[SpaceSVG] Ear-clipping deadlocked with N of M vertices unclipped`. Worst case: a few overlapping triangles, never a hole.
+
+**If the fan fallback fires frequently:** swap in the standard `earcut` algorithm (Mapbox's reference implementation, ~250 lines). Z-order curve acceleration makes it both faster and more robust on dense input. The current code is sufficient for the SVGs tested so far.
+
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |
@@ -325,5 +423,11 @@ Tags are classified into three sets:
 | SVG arc-to-bezier conversion bugs | Incorrect path rendering | Use well-tested reference algorithm |
 | XML parser edge cases | Parse failures on valid SVGs | Extensive test cases, swap to jsdom later |
 | Font availability on Spectacles | Text renders incorrectly | Default to sans-serif, document limitations |
-| Triangulation bugs for complex paths | Visual artifacts | Use earcut algorithm, test with complex geometry |
+| Triangulation bugs for complex paths | Visual artifacts | Strict-interior + epsilon convexity + fan fallback (in place); swap to Mapbox `earcut` if fallback fires often |
 | Large SVG performance | Slow parse/render | Limit element count, lazy rendering |
+| AR additive display: dark colors invisible | Outlines vanish | `darkStrokeColor` remap in `SpaceSVGImage` |
+| Stroke width sub-pixel after viewBox scale | Outlines invisible | `strokeScale` Inspector knob |
+| Sharp-corner pinches / bowties on wide strokes | Triangle artifacts | Per-edge-normal stroke tessellation with explicit bevel corners |
+| Self-intersecting fill paths (pentagrams) | Partial triangulation | Self-intersection detector + planar-graph untangle in `triangulateFill` |
+| 3D-export SVGs include interior fold lines | Visual clutter | `skipGroupIds` Inspector input |
+| Mesh layering ambiguous when all at z=0 | Strokes hidden behind fills | `setRenderOrder` + `index*0.005` z-step |
